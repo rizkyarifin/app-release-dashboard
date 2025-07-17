@@ -1,11 +1,12 @@
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 import type { Release, ReleaseCreate } from '../types';
 import { getOrganizationForApp } from './organization-mapper';
 
-// Turso database client
+// Turso database client with WebAssembly for serverless
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL || 'libsql://app-release-dashboard-rizkyarifin.aws-ap-northeast-1.turso.io',
   authToken: process.env.TURSO_AUTH_TOKEN || '',
+  intMode: 'number'
 });
 
 // Initialize the database with the releases table
@@ -107,7 +108,7 @@ export async function createRelease(data: ReleaseCreate): Promise<Release> {
       ]
     });
     
-    const newRelease = await getReleaseById(result.lastInsertRowid as number);
+    const newRelease = await getReleaseById(Number(result.lastInsertRowid));
     if (!newRelease) {
       throw new Error('Failed to create release');
     }
@@ -164,7 +165,7 @@ export async function deleteRelease(id: number): Promise<boolean> {
       args: [id]
     });
     
-    return result.changes > 0;
+    return result.rowsAffected > 0;
   } catch (error) {
     console.error('Error in deleteRelease:', error);
     throw error;
@@ -181,7 +182,7 @@ export async function updateMultipleReleaseStatus(ids: number[], status: string)
         args: [status, id]
       });
       
-      if (result.changes > 0) {
+      if (result.rowsAffected > 0) {
         updatedCount++;
       }
     }

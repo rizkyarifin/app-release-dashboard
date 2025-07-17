@@ -1,0 +1,19 @@
+
+> app-release-dashboard@1.0.0 dev
+> astro dev
+
+17:58:53 [@astrojs/netlify] Enabling sessions with Netlify Blobs
+17:58:56 [vite] Environment loaded
+17:58:56 [vite] Middleware loaded. Emulating features: blobs, edgeFunctions, environmentVariables, functions, headers, images, redirects, static.
+17:58:56 [types] Generated 1ms
+17:58:56 [content] Syncing content
+17:58:56 [content] Synced content
+17:58:56 [vite] Port 4321 is in use, trying another one...
+17:58:56 [vite] Port 4322 is in use, trying another one...
+
+ astro  v5.11.2 ready in 3034 ms
+
+┃ Local    http://localhost:4323/
+┃ Network  use --host to expose
+
+17:58:56 watching for file changes...
