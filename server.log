@@ -1,0 +1,35 @@
+
+> app-release-dashboard@1.0.0 dev
+> astro dev
+
+14:24:17 [@astrojs/node] Enabling sessions with filesystem storage
+14:24:17 [types] Generated 0ms
+14:24:17 [content] Syncing content
+14:24:17 [content] Synced content
+
+ astro  v5.11.1 ready in 78 ms
+
+┃ Local    http://localhost:4321/
+┃ Network  use --host to expose
+
+14:24:17 watching for file changes...
+14:24:21 [200] / 8ms
+14:24:21 [200] /api/releases 1ms
+
+> app-release-dashboard@1.0.0 dev
+> astro dev
+
+14:32:47 [@astrojs/node] Enabling sessions with filesystem storage
+14:32:47 [types] Generated 0ms
+14:32:47 [content] Syncing content
+14:32:47 [content] Astro config changed
+14:32:47 [content] Clearing content store
+14:32:47 [content] Synced content
+14:32:47 [vite] Re-optimizing dependencies because vite config has changed
+
+ astro  v5.11.1 ready in 88 ms
+
+┃ Local    http://localhost:4321/
+┃ Network  use --host to expose
+
+14:32:47 watching for file changes...

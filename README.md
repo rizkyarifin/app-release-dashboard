@@ -1,135 +1,87 @@
 # App Release Dashboard
 
-A simple dashboard for managing Android and iOS app releases, with data sourced from GitLab CI jobs.
+A unified Astro application for tracking mobile app releases across iOS and Android platforms.
 
-## Architecture
+## Features
 
-- **Backend**: Python FastAPI
-- **Frontend**: React with TypeScript and Material-UI
-- **Database**: SQLite (default) or PostgreSQL
+- Single codebase with Astro SSR
+- SQLite database for local development
+- PostgreSQL support for production
+- RESTful API endpoints
+- React components for interactive UI
+- Auto-organization detection based on app names
+- Responsive design
 
-## Setup
+## Tech Stack
 
-### Backend Setup
+- **Framework**: Astro with SSR
+- **Frontend**: React components
+- **Backend**: Astro API routes
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **Language**: TypeScript
 
-1. Navigate to the backend directory:
-```bash
-cd backend
+## Project Structure
+
+```
+src/
+├── components/      # React components
+├── lib/            # Database and utilities
+├── pages/          # Astro pages and API routes
+│   └── api/        # API endpoints
+├── styles/         # CSS files
+└── types/          # TypeScript types
 ```
 
-2. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+## Getting Started
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Create a `.env` file:
-```bash
-cp .env.example .env
-```
-
-5. Run the backend:
-```bash
-python main.py
-```
-
-The API will be available at `http://localhost:8000`
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Start the development server:
+2. Copy environment variables:
 ```bash
-npm start
+cp .env.example .env
 ```
 
-The dashboard will be available at `http://localhost:3000`
-
-## GitLab CI Integration
-
-To send release data from GitLab CI to the dashboard, add a webhook call in your `.gitlab-ci.yml`:
-
-```yaml
-variables:
-  APP_NAME: "MyApp"
-  PLATFORM: "android"  # or "ios"
-  VERSION: "1.0.0"
-  BUILD_NUMBER: "${CI_PIPELINE_ID}"
-  RELEASE_NOTES: "Bug fixes and improvements"
-  ARTIFACT_URL: "${CI_JOB_URL}/artifacts/download"
-
-.notify_dashboard:
-  script:
-    - |
-      curl -X POST http://your-dashboard-url/webhook/gitlab \
-        -H "Content-Type: application/json" \
-        -d '{
-          "object_kind": "build",
-          "build_status": "'${CI_JOB_STATUS}'",
-          "build_id": "'${CI_JOB_ID}'",
-          "pipeline_id": "'${CI_PIPELINE_ID}'",
-          "ref": "'${CI_COMMIT_REF_NAME}'",
-          "sha": "'${CI_COMMIT_SHA}'",
-          "project": {
-            "name": "'${CI_PROJECT_NAME}'"
-          },
-          "variables": {
-            "APP_NAME": "'${APP_NAME}'",
-            "PLATFORM": "'${PLATFORM}'",
-            "VERSION": "'${VERSION}'",
-            "BUILD_NUMBER": "'${BUILD_NUMBER}'",
-            "RELEASE_NOTES": "'${RELEASE_NOTES}'",
-            "ARTIFACT_URL": "'${ARTIFACT_URL}'"
-          }
-        }'
-
-build_android:
-  stage: build
-  variables:
-    PLATFORM: "android"
-  script:
-    - echo "Building Android app..."
-    # Your build commands here
-  after_script:
-    - !reference [.notify_dashboard, script]
-
-build_ios:
-  stage: build
-  variables:
-    PLATFORM: "ios"
-  script:
-    - echo "Building iOS app..."
-    # Your build commands here
-  after_script:
-    - !reference [.notify_dashboard, script]
+3. Run development server:
+```bash
+npm run dev
 ```
+
+The app will be available at http://localhost:4321
 
 ## API Endpoints
 
-- `POST /webhook/gitlab` - Receive webhook data from GitLab CI
-- `GET /releases` - Get all releases with optional filters
-- `GET /releases/{id}` - Get a specific release
-- `GET /stats` - Get dashboard statistics
+- `GET /api/releases` - Get all releases
+- `POST /api/releases` - Create a new release
+- `GET /api/releases/[id]` - Get a specific release
+- `PUT /api/releases/[id]` - Update a release
+- `DELETE /api/releases/[id]` - Delete a release
 
-## Features
+## Deployment
 
-- Real-time dashboard showing release statistics
-- Filter releases by platform, app name, and status
-- View release history with details
-- Success rate tracking
-- Direct links to GitLab jobs and artifacts
-- Auto-refresh every 30 seconds
+The app can be deployed to various platforms:
+
+### Render
+Push to your repository and connect to Render. The `render.yaml` is pre-configured.
+
+### Railway
+Use the Railway CLI or connect your GitHub repo. The `railway.json` is included.
+
+### Vercel
+Deploy with Vercel CLI or GitHub integration. The `vercel.json` is configured.
+
+### Environment Variables
+
+- `DATABASE_URL` - Database connection string
+- `FRONTEND_URL` - Frontend URL for CORS (defaults to http://localhost:4321)
+- `PORT` - Server port (defaults to 4321)
+
+## Development
+
+The app uses Astro's SSR mode with the Node.js adapter. API routes are located in `src/pages/api/` and use Astro's API route handlers.
+
+## Database
+
+The app uses SQLite for local development and can be configured to use PostgreSQL in production by setting the `DATABASE_URL` environment variable.
