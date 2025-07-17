@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: app-release-dashboard
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.15.1
+      - key: DATABASE_URL
+        value: sqlite:///./releases.db
+      - key: PORT
+        value: 10000
+    healthCheckPath: /
+    autoDeploy: false

@@ -1,0 +1,24 @@
+---
+// Static test page
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Static Test Page</title>
+  </head>
+  <body>
+    <h1>Static Test Page</h1>
+    <p>This is a static test page to verify Astro is working.</p>
+    <p>Current time: {new Date().toISOString()}</p>
+    <p>If you can see this, the basic Astro setup is working.</p>
+    
+    <h2>API Test</h2>
+    <p>Try accessing: <a href="/api/releases">/api/releases</a></p>
+    
+    <script>
+      console.log('Static page loaded successfully');
+    </script>
+  </body>
+</html>

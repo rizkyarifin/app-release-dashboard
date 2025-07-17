@@ -1,0 +1,23 @@
+---
+import SimpleRelease from '../components/SimpleRelease';
+import { getAllReleases } from '../lib/db-config';
+
+let releases = [];
+try {
+  releases = getAllReleases();
+} catch (error) {
+  console.error('Error fetching releases:', error);
+  releases = [];
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Simple Release Dashboard</title>
+  </head>
+  <body>
+    <SimpleRelease releases={releases} client:load />
+  </body>
+</html>
