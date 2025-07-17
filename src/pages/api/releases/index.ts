@@ -4,7 +4,7 @@ import type { ReleaseCreate } from '../../../types';
 
 export const GET: APIRoute = async () => {
   try {
-    const releases = getAllReleases();
+    const releases = await getAllReleases();
     return new Response(JSON.stringify(releases), {
       status: 200,
       headers: {
@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
     
-    const release = createRelease(data);
+    const release = await createRelease(data);
     return new Response(JSON.stringify(release), {
       status: 201,
       headers: {

@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
     
-    const updatedCount = updateMultipleReleaseStatus(numericIds, status);
+    const updatedCount = await updateMultipleReleaseStatus(numericIds, status);
     
     return new Response(JSON.stringify({ 
       message: `Updated ${updatedCount} releases to status: ${status}`,

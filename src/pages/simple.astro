@@ -4,7 +4,7 @@ import { getAllReleases } from '../lib/db-config';
 
 let releases = [];
 try {
-  releases = getAllReleases();
+  releases = await getAllReleases();
 } catch (error) {
   console.error('Error fetching releases:', error);
   releases = [];

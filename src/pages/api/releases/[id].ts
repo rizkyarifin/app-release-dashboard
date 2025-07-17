@@ -5,7 +5,7 @@ import type { ReleaseUpdate } from '../../../types';
 export const GET: APIRoute = async ({ params }) => {
   try {
     const id = parseInt(params.id!);
-    const release = getReleaseById(id);
+    const release = await getReleaseById(id);
     
     if (!release) {
       return new Response(JSON.stringify({ error: 'Release not found' }), {
@@ -47,7 +47,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       });
     }
     
-    const release = updateRelease(id, data);
+    const release = await updateRelease(id, data);
     
     if (!release) {
       return new Response(JSON.stringify({ error: 'Release not found' }), {
@@ -77,7 +77,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
 export const DELETE: APIRoute = async ({ params }) => {
   try {
     const id = parseInt(params.id!);
-    const success = deleteRelease(id);
+    const success = await deleteRelease(id);
     
     if (!success) {
       return new Response(JSON.stringify({ error: 'Release not found' }), {
