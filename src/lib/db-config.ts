@@ -1,13 +1,17 @@
-// Database configuration that switches between SQLite and in-memory based on environment
+// Database configuration that switches between SQLite, Turso, and in-memory based on environment
 import type { Release, ReleaseCreate } from '../types';
 
-// Check if we're running in a serverless environment (Netlify)
-const isServerless = process.env.NETLIFY || process.env.NODE_ENV === 'production';
+// Check if we're running in production with Turso
+const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY;
+const hasTursoConfig = process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN;
 
 let dbImplementation: any;
 
-if (isServerless) {
-  // Use in-memory database for Netlify
+if (isProduction && hasTursoConfig) {
+  // Use Turso database for production
+  dbImplementation = await import('./db-turso');
+} else if (isProduction) {
+  // Fallback to in-memory database for serverless without Turso
   dbImplementation = await import('./db-netlify');
 } else {
   // Use SQLite for local development
