@@ -18,6 +18,8 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   const [selectedReleases, setSelectedReleases] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState<ReleaseStatus>('In Review');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const organizations = [...new Set(releases.map(r => r.organization))].sort();
   const platforms = [...new Set(releases.map(r => r.platform))].sort();
@@ -47,6 +49,17 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       return 0;
     });
   }, [releases, sortField, sortDirection, filterOrg, filterPlatform, filterStatus, filterTag, searchTerm]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAndSortedReleases.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReleases = filteredAndSortedReleases.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterOrg, filterPlatform, filterStatus, filterTag, searchTerm, itemsPerPage]);
 
   const handleSort = (field: keyof Release) => {
     if (sortField === field) {
@@ -135,10 +148,13 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   };
 
   const handleSelectAll = () => {
-    if (selectedReleases.length === filteredAndSortedReleases.length) {
-      setSelectedReleases([]);
+    const currentPageIds = paginatedReleases.map(r => r.id);
+    const isAllSelected = currentPageIds.every(id => selectedReleases.includes(id));
+    
+    if (isAllSelected) {
+      setSelectedReleases(prev => prev.filter(id => !currentPageIds.includes(id)));
     } else {
-      setSelectedReleases(filteredAndSortedReleases.map(r => r.id));
+      setSelectedReleases(prev => [...new Set([...prev, ...currentPageIds])]);
     }
   };
 
@@ -259,7 +275,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
               <th className="checkbox-col">
                 <input
                   type="checkbox"
-                  checked={selectedReleases.length === filteredAndSortedReleases.length && filteredAndSortedReleases.length > 0}
+                  checked={paginatedReleases.length > 0 && paginatedReleases.every(r => selectedReleases.includes(r.id))}
                   onChange={handleSelectAll}
                 />
               </th>
@@ -330,7 +346,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedReleases.map((release) => (
+            {paginatedReleases.map((release) => (
               <tr key={release.id}>
                 <td className="checkbox-col">
                   <input
@@ -363,7 +379,15 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                     ))}
                   </select>
                 </td>
-                <td className="tag">{release.tag}</td>
+                <td className="tag">
+                  <span className="tag-badge">
+                    <svg className="tag-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                    </svg>
+                    {release.tag}
+                  </span>
+                </td>
                 <td className="date">{formatDate(release.uploadDate)}</td>
               </tr>
             ))}
@@ -374,6 +398,91 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       {filteredAndSortedReleases.length === 0 && (
         <div className="no-results">
           <p>No releases found matching your criteria.</p>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredAndSortedReleases.length > 0 && (
+        <div className="pagination-controls">
+          <div className="pagination-info">
+            <span>
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredAndSortedReleases.length)} of {filteredAndSortedReleases.length} releases
+            </span>
+            <div className="items-per-page">
+              <label>Items per page:</label>
+              <select 
+                value={itemsPerPage} 
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="per-page-select"
+              >
+                <option value={10}>10</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="pagination-buttons">
+            <button 
+              onClick={() => setCurrentPage(1)} 
+              disabled={currentPage === 1}
+              className="pagination-btn"
+              title="First page"
+            >
+              ««
+            </button>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
+              disabled={currentPage === 1}
+              className="pagination-btn"
+              title="Previous page"
+            >
+              «
+            </button>
+            
+            {/* Page numbers */}
+            <div className="page-numbers">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
+              disabled={currentPage === totalPages}
+              className="pagination-btn"
+              title="Next page"
+            >
+              »
+            </button>
+            <button 
+              onClick={() => setCurrentPage(totalPages)} 
+              disabled={currentPage === totalPages}
+              className="pagination-btn"
+              title="Last page"
+            >
+              »»
+            </button>
+          </div>
         </div>
       )}
     </div>

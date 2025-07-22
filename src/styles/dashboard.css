@@ -324,6 +324,35 @@
   color: #999;
 }
 
+.tag-container {
+  margin: 8px 0;
+}
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #E3F2FD;
+  color: #1976D2;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tag-badge:hover {
+  background-color: #BBDEFB;
+  color: #1565C0;
+}
+
+.tag-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .additional-data {
   border-top: 1px solid #f0f0f0;
   padding-top: 12px;
