@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import type { Release, ReleaseStatus } from '../types';
+import { exportToCSV } from '../utils/csvExport';
 
 interface ReleaseTableProps {
   releases: Release[];
@@ -14,6 +15,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   const [filterPlatform, setFilterPlatform] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterTag, setFilterTag] = useState('');
+  const [filterForceUpdate, setFilterForceUpdate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReleases, setSelectedReleases] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState<ReleaseStatus>('In Review');
@@ -26,6 +28,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   const tags = [...new Set(releases.map(r => r.tag))].sort();
   const statuses: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
   const filterStatuses = ['All', 'In Review', 'Ready to publish', 'Published'];
+  const forceUpdateOptions = ['All', 'Yes', 'No'];
 
   const filteredAndSortedReleases = useMemo(() => {
     let filtered = releases.filter(release => {
@@ -33,11 +36,12 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       const matchesPlatform = !filterPlatform || release.platform === filterPlatform;
       const matchesStatus = !filterStatus || filterStatus === 'All' || release.status === filterStatus;
       const matchesTag = !filterTag || release.tag === filterTag;
+      const matchesForceUpdate = !filterForceUpdate || filterForceUpdate === 'All' || (release.forceUpdate || 'No') === filterForceUpdate;
       const matchesSearch = !searchTerm || 
         release.appName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         release.version.toLowerCase().includes(searchTerm.toLowerCase());
       
-      return matchesOrg && matchesPlatform && matchesStatus && matchesTag && matchesSearch;
+      return matchesOrg && matchesPlatform && matchesStatus && matchesTag && matchesForceUpdate && matchesSearch;
     });
 
     return filtered.sort((a, b) => {
@@ -48,7 +52,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [releases, sortField, sortDirection, filterOrg, filterPlatform, filterStatus, filterTag, searchTerm]);
+  }, [releases, sortField, sortDirection, filterOrg, filterPlatform, filterStatus, filterTag, filterForceUpdate, searchTerm]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredAndSortedReleases.length / itemsPerPage);
@@ -59,7 +63,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filterOrg, filterPlatform, filterStatus, filterTag, searchTerm, itemsPerPage]);
+  }, [filterOrg, filterPlatform, filterStatus, filterTag, filterForceUpdate, searchTerm, itemsPerPage]);
 
   const handleSort = (field: keyof Release) => {
     if (sortField === field) {
@@ -92,6 +96,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
     setFilterPlatform('');
     setFilterStatus('');
     setFilterTag('');
+    setFilterForceUpdate('');
     setSearchTerm('');
   };
 
@@ -166,6 +171,12 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
     );
   };
 
+  const handleExportCSV = () => {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `releases-export-${timestamp}.csv`;
+    exportToCSV(filteredAndSortedReleases, filename);
+  };
+
   return (
     <div className="release-table-container">
       {/* Filters */}
@@ -232,8 +243,30 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
           </select>
         </div>
         
+        <div className="filter-group">
+          <select
+            value={filterForceUpdate}
+            onChange={(e) => setFilterForceUpdate(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Force Updates</option>
+            {forceUpdateOptions.slice(1).map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+        
         <button onClick={clearFilters} className="clear-btn">
           Clear Filters
+        </button>
+        
+        <button onClick={handleExportCSV} className="export-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
         </button>
       </div>
 

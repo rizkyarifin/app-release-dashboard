@@ -51,6 +51,24 @@
   background: #d32f2f;
 }
 
+.export-btn {
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-btn:hover {
+  background: #45a049;
+}
+
 .results-info {
   color: #666;
   font-size: 14px;
