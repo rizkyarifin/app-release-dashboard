@@ -182,6 +182,15 @@
   font-size: 11px;
 }
 
+.force-update {
+  color: #666;
+  font-size: 11px;
+  background: #f0f0f0;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
 .release-item-right {
   display: flex;
   align-items: center;

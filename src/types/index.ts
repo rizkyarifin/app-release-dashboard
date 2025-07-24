@@ -10,6 +10,7 @@ export interface Release {
   status: ReleaseStatus;
   tag: string;
   uploadDate: string;
+  forceUpdate?: string;
   additionalData?: Record<string, any>;
 }
 
@@ -22,6 +23,7 @@ export interface ReleaseCreate {
   status?: ReleaseStatus;
   tag: string;
   uploadDate?: string;
+  forceUpdate?: string;
   additionalData?: Record<string, any>;
 }
 
@@ -34,5 +36,6 @@ export interface ReleaseUpdate {
   status?: ReleaseStatus;
   tag?: string;
   uploadDate?: string;
+  forceUpdate?: string;
   additionalData?: Record<string, any>;
 }

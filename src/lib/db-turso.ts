@@ -23,9 +23,17 @@ async function initializeDatabase() {
         status TEXT DEFAULT 'In Review',
         tag TEXT NOT NULL,
         uploadDate TEXT NOT NULL,
+        forceUpdate TEXT DEFAULT 'No',
         additionalData TEXT
       )
     `);
+    
+    // Add forceUpdate column if it doesn't exist (for existing databases)
+    try {
+      await client.execute(`ALTER TABLE releases ADD COLUMN forceUpdate TEXT DEFAULT 'No'`);
+    } catch (error) {
+      // Column already exists, ignore the error
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
   }
@@ -48,6 +56,7 @@ export async function getAllReleases(): Promise<Release[]> {
       status: (row.status as string) || 'In Review',
       tag: (row.tag as string) || 'general-release-untagged',
       uploadDate: row.uploadDate as string,
+      forceUpdate: (row.forceUpdate as string) || 'No',
       additionalData: row.additionalData ? JSON.parse(row.additionalData as string) : undefined
     }));
   } catch (error) {
@@ -76,6 +85,7 @@ export async function getReleaseById(id: number): Promise<Release | undefined> {
       status: (row.status as string) || 'In Review',
       tag: (row.tag as string) || 'general-release-untagged',
       uploadDate: row.uploadDate as string,
+      forceUpdate: (row.forceUpdate as string) || 'No',
       additionalData: row.additionalData ? JSON.parse(row.additionalData as string) : undefined
     };
   } catch (error) {
@@ -92,8 +102,8 @@ export async function createRelease(data: ReleaseCreate): Promise<Release> {
     
     const result = await client.execute({
       sql: `
-        INSERT INTO releases (organization, appName, platform, version, branch, status, tag, uploadDate, additionalData)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO releases (organization, appName, platform, version, branch, status, tag, uploadDate, forceUpdate, additionalData)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         organization,
@@ -104,6 +114,7 @@ export async function createRelease(data: ReleaseCreate): Promise<Release> {
         status,
         data.tag,
         uploadDate,
+        data.forceUpdate || 'No',
         data.additionalData ? JSON.stringify(data.additionalData) : null
       ]
     });
@@ -134,7 +145,7 @@ export async function updateRelease(id: number, data: Partial<ReleaseCreate>): P
       sql: `
         UPDATE releases
         SET organization = ?, appName = ?, platform = ?, version = ?, branch = ?, 
-            status = ?, tag = ?, uploadDate = ?, additionalData = ?
+            status = ?, tag = ?, uploadDate = ?, forceUpdate = ?, additionalData = ?
         WHERE id = ?
       `,
       args: [
@@ -146,6 +157,7 @@ export async function updateRelease(id: number, data: Partial<ReleaseCreate>): P
         updated.status,
         updated.tag,
         updated.uploadDate,
+        updated.forceUpdate || 'No',
         updated.additionalData ? JSON.stringify(updated.additionalData) : null,
         id
       ]

@@ -343,6 +343,14 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                   </span>
                 )}
               </th>
+              <th onClick={() => handleSort('forceUpdate')} className="sortable">
+                Force Update
+                {sortField === 'forceUpdate' && (
+                  <span className="sort-arrow">
+                    {sortDirection === 'asc' ? ' ↑' : ' ↓'}
+                  </span>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -389,6 +397,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                   </span>
                 </td>
                 <td className="date">{formatDate(release.uploadDate)}</td>
+                <td className="force-update">{release.forceUpdate || 'No'}</td>
               </tr>
             ))}
           </tbody>

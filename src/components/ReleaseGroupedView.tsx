@@ -235,6 +235,7 @@ const ReleaseGroupedView: React.FC<ReleaseGroupedViewProps> = ({ releases, onRel
                             <span className="version">v{release.version}</span>
                             <span className="branch">{release.branch}</span>
                             <span className="date">{formatDate(release.uploadDate)}</span>
+                            <span className="force-update">Force Update: {release.forceUpdate || 'No'}</span>
                           </div>
                         </div>
                       </div>

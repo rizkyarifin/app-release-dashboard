@@ -47,6 +47,16 @@ export const PUT: APIRoute = async ({ params, request }) => {
       });
     }
     
+    // Validate forceUpdate if provided
+    if (data.forceUpdate && !['Yes', 'No'].includes(data.forceUpdate)) {
+      return new Response(JSON.stringify({ error: 'Invalid forceUpdate. Must be either Yes or No' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+    
     const release = await updateRelease(id, data);
     
     if (!release) {

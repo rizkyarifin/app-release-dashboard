@@ -24,6 +24,7 @@ db.exec(`
     status TEXT DEFAULT 'In Review',
     tag TEXT NOT NULL,
     uploadDate TEXT NOT NULL,
+    forceUpdate TEXT DEFAULT 'No',
     additionalData TEXT
   )
 `);
@@ -45,6 +46,13 @@ try {
 // Add tag column if it doesn't exist (for existing databases)
 try {
   db.exec(`ALTER TABLE releases ADD COLUMN tag TEXT DEFAULT 'general-release-untagged'`);
+} catch (error) {
+  // Column already exists, ignore the error
+}
+
+// Add forceUpdate column if it doesn't exist (for existing databases)
+try {
+  db.exec(`ALTER TABLE releases ADD COLUMN forceUpdate TEXT DEFAULT 'No'`);
 } catch (error) {
   // Column already exists, ignore the error
 }
@@ -74,6 +82,7 @@ export function getAllReleases(): Release[] {
       status: release.status || 'In Review',
       tag: release.tag || 'general-release-untagged',
       uploadDate: release.uploadDate,
+      forceUpdate: release.forceUpdate || 'No',
       additionalData: release.additionalData ? JSON.parse(release.additionalData) : undefined
     }));
   } catch (error) {
@@ -98,6 +107,7 @@ export function getReleaseById(id: number): Release | undefined {
     status: release.status || 'In Review',
     tag: release.tag || 'general-release-untagged',
     uploadDate: release.uploadDate,
+    forceUpdate: release.forceUpdate || 'No',
     additionalData: release.additionalData ? JSON.parse(release.additionalData) : undefined
   };
 }
@@ -109,8 +119,8 @@ export function createRelease(data: ReleaseCreate): Release {
   const status = data.status || 'In Review';
   
   const stmt = db.prepare(`
-    INSERT INTO releases (organization, appName, platform, version, branch, status, tag, uploadDate, additionalData)
-    VALUES (@organization, @appName, @platform, @version, @branch, @status, @tag, @uploadDate, @additionalData)
+    INSERT INTO releases (organization, appName, platform, version, branch, status, tag, uploadDate, forceUpdate, additionalData)
+    VALUES (@organization, @appName, @platform, @version, @branch, @status, @tag, @uploadDate, @forceUpdate, @additionalData)
   `);
   
   const info = stmt.run({
@@ -118,6 +128,7 @@ export function createRelease(data: ReleaseCreate): Release {
     organization,
     status,
     uploadDate,
+    forceUpdate: data.forceUpdate || 'No',
     additionalData: data.additionalData ? JSON.stringify(data.additionalData) : null
   });
   
@@ -144,6 +155,7 @@ export function updateRelease(id: number, data: Partial<ReleaseCreate>): Release
         status = @status,
         tag = @tag,
         uploadDate = @uploadDate,
+        forceUpdate = @forceUpdate,
         additionalData = @additionalData
     WHERE id = @id
   `);
