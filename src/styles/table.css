@@ -130,6 +130,10 @@
   color: #333;
 }
 
+td.organization {
+  background: #f5f5f5;
+}
+
 .organization {
   color: #666;
   font-size: 13px;
@@ -151,12 +155,13 @@
   color: #2196F3;
 }
 
+td.branch {
+  background: #f5f5f5;
+}
+
 .branch {
   color: #666;
   font-family: monospace;
-  background: #f8f9fa;
-  padding: 2px 6px;
-  border-radius: 3px;
   font-size: 12px;
 }
 
@@ -251,15 +256,31 @@
   font-size: 13px;
 }
 
-.force-update {
+td.force-update {
+  text-align: center;
+  background: #f5f5f5;
+}
+
+.force-update-value {
+  display: inline-block;
   font-size: 13px;
   font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 3px;
-  text-align: center;
-  min-width: 30px;
-  background: #f8f9fa;
-  color: #666;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.force-update-yes {
+  background-color: #D4EDDA;
+  color: #155724;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.force-update-no {
+  background-color: #F8D7DA;
+  color: #721C24;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .no-results {

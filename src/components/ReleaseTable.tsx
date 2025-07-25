@@ -223,9 +223,8 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
             onChange={(e) => setFilterStatus(e.target.value)}
             className="filter-select"
           >
-            <option value="">All Statuses</option>
             {filterStatuses.map(status => (
-              <option key={status} value={status}>{status}</option>
+              <option key={status} value={status === 'All' ? '' : status}>{status}</option>
             ))}
           </select>
         </div>
@@ -430,7 +429,11 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                   </span>
                 </td>
                 <td className="date">{formatDate(release.uploadDate)}</td>
-                <td className="force-update">{release.forceUpdate || 'No'}</td>
+                <td className="force-update">
+                  <span className={`force-update-value ${release.forceUpdate === 'Yes' ? 'force-update-yes' : 'force-update-no'}`}>
+                    {release.forceUpdate || 'No'}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
