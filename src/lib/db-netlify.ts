@@ -1,9 +1,14 @@
-import type { Release, ReleaseCreate } from '../types';
+import type { Release, ReleaseCreate, Organization, App } from '../types';
 import { getOrganizationForApp } from './organization-mapper';
+import { getPackageNameForApp } from './package-mapper';
 
 // In-memory database for Netlify Functions (serverless)
 let releases: Release[] = [];
+let organizations: Organization[] = [];
+let apps: App[] = [];
 let idCounter = 1;
+let orgIdCounter = 1;
+let appIdCounter = 1;
 
 // This is a simplified in-memory database for Netlify demo
 // In production, you'd want to use a real database like Neon PostgreSQL
@@ -67,4 +72,37 @@ export function updateMultipleReleaseStatus(ids: number[], status: string): numb
   });
   
   return updated;
+}
+
+export function deleteMultipleReleases(ids: number[]): number {
+  let deleted = 0;
+
+  ids.forEach(id => {
+    const index = releases.findIndex(r => r.id === id);
+    if (index !== -1) {
+      releases.splice(index, 1);
+      deleted++;
+    }
+  });
+
+  return deleted;
+}
+
+export function findOrCreateOrganization(orgName: string): Organization {
+  let org = organizations.find(o => o.name === orgName);
+  if (!org) {
+    org = { id: orgIdCounter++, name: orgName };
+    organizations.push(org);
+  }
+  return org;
+}
+
+export function findOrCreateApp(appName: string, organizationId: number): App {
+  let app = apps.find(a => a.name === appName && a.organizationId === organizationId);
+  if (!app) {
+    const packageName = getPackageNameForApp(appName);
+    app = { id: appIdCounter++, name: appName, packageName, organizationId };
+    apps.push(app);
+  }
+  return app;
 }

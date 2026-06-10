@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
-import type { Release, ReleaseCreate } from '../types';
-import { getOrganizationForApp } from './organization-mapper';
+import type { Release, ReleaseCreate, Organization, OrganizationCreate, App, AppCreate } from '../types';
+import { getPackageNameForApp } from './package-mapper';
 
 let db: Database.Database;
 
@@ -12,12 +12,29 @@ try {
   db = new Database(':memory:');
 }
 
-// Create releases table if it doesn't exist
+// Create new tables with relationships
+db.exec(`
+  CREATE TABLE IF NOT EXISTS organizations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS apps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    packageName TEXT NOT NULL,
+    organizationId INTEGER NOT NULL,
+    FOREIGN KEY (organizationId) REFERENCES organizations(id) ON DELETE CASCADE,
+    UNIQUE(name, organizationId)
+  )
+`);
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS releases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    organization TEXT NOT NULL,
-    appName TEXT NOT NULL,
+    appId INTEGER NOT NULL,
     platform TEXT NOT NULL,
     version TEXT NOT NULL,
     branch TEXT NOT NULL,
@@ -25,65 +42,109 @@ db.exec(`
     tag TEXT NOT NULL,
     uploadDate TEXT NOT NULL,
     forceUpdate TEXT DEFAULT 'No',
-    additionalData TEXT
+    additionalData TEXT,
+    FOREIGN KEY (appId) REFERENCES apps(id) ON DELETE CASCADE
   )
 `);
 
-// Add status column if it doesn't exist (for existing databases)
-try {
-  db.exec(`ALTER TABLE releases ADD COLUMN status TEXT DEFAULT 'In Review'`);
-} catch (error) {
-  // Column already exists, ignore the error
+
+// Helper functions for organizations
+export function getAllOrganizations(): Organization[] {
+  const stmt = db.prepare('SELECT * FROM organizations ORDER BY name ASC');
+  return stmt.all() as Organization[];
 }
 
-// Add branch column if it doesn't exist (for existing databases that might have buildNumber)
-try {
-  db.exec(`ALTER TABLE releases ADD COLUMN branch TEXT DEFAULT 'main'`);
-} catch (error) {
-  // Column already exists, ignore the error
+export function getOrganizationById(id: number): Organization | undefined {
+  const stmt = db.prepare('SELECT * FROM organizations WHERE id = ?');
+  return stmt.get(id) as Organization | undefined;
 }
 
-// Add tag column if it doesn't exist (for existing databases)
-try {
-  db.exec(`ALTER TABLE releases ADD COLUMN tag TEXT DEFAULT 'general-release-untagged'`);
-} catch (error) {
-  // Column already exists, ignore the error
+export function createOrganization(data: OrganizationCreate): Organization {
+  const stmt = db.prepare('INSERT INTO organizations (name) VALUES (?)');
+  const info = stmt.run(data.name);
+  return getOrganizationById(info.lastInsertRowid as number)!;
 }
 
-// Add forceUpdate column if it doesn't exist (for existing databases)
-try {
-  db.exec(`ALTER TABLE releases ADD COLUMN forceUpdate TEXT DEFAULT 'No'`);
-} catch (error) {
-  // Column already exists, ignore the error
+// Helper functions for apps
+export function getAllApps(): App[] {
+  const stmt = db.prepare('SELECT * FROM apps ORDER BY name ASC');
+  return stmt.all() as App[];
 }
 
-// Migrate buildNumber to branch if buildNumber column exists
-try {
-  const hasBuildbNumber = db.prepare("PRAGMA table_info(releases)").all().some((col: any) => col.name === 'buildNumber');
-  if (hasBuildbNumber) {
-    db.exec(`UPDATE releases SET branch = buildNumber WHERE branch IS NULL OR branch = ''`);
+export function getAppById(id: number): App | undefined {
+  const stmt = db.prepare('SELECT * FROM apps WHERE id = ?');
+  return stmt.get(id) as App | undefined;
+}
+
+export function getAppsByOrganization(organizationId: number): App[] {
+  const stmt = db.prepare('SELECT * FROM apps WHERE organizationId = ? ORDER BY name ASC');
+  return stmt.all(organizationId) as App[];
+}
+
+export function createApp(data: AppCreate): App {
+  const stmt = db.prepare('INSERT INTO apps (name, packageName, organizationId) VALUES (?, ?, ?)');
+  const info = stmt.run(data.name, data.packageName, data.organizationId);
+  return getAppById(info.lastInsertRowid as number)!;
+}
+
+export function findOrCreateApp(appName: string, organizationId: number): App {
+  let app = db.prepare('SELECT * FROM apps WHERE name = ? AND organizationId = ?').get(appName, organizationId) as App | undefined;
+
+  if (!app) {
+    const packageName = getPackageNameForApp(appName);
+    app = createApp({ name: appName, packageName, organizationId });
   }
-} catch (error) {
-  // Ignore migration errors
+
+  return app;
 }
 
+export function findOrCreateOrganization(orgName: string): Organization {
+  let org = db.prepare('SELECT * FROM organizations WHERE name = ?').get(orgName) as Organization | undefined;
+
+  if (!org) {
+    org = createOrganization({ name: orgName });
+  }
+
+  return org;
+}
+
+// Release functions with JOIN to get full data
 export function getAllReleases(): Release[] {
   try {
-    const stmt = db.prepare('SELECT * FROM releases ORDER BY uploadDate DESC');
+    const stmt = db.prepare(`
+      SELECT
+        r.id, r.appId, r.platform, r.version, r.branch, r.status, r.tag, r.uploadDate, r.forceUpdate, r.additionalData,
+        a.id as app_id, a.name as app_name, a.packageName as app_packageName, a.organizationId as app_organizationId,
+        o.id as org_id, o.name as org_name
+      FROM releases r
+      JOIN apps a ON r.appId = a.id
+      JOIN organizations o ON a.organizationId = o.id
+      ORDER BY r.uploadDate DESC
+    `);
+
     const releases = stmt.all() as any[];
-    
-    return releases.map(release => ({
-      id: release.id,
-      organization: release.organization,
-      appName: release.appName,
-      platform: release.platform,
-      version: release.version,
-      branch: release.branch,
-      status: release.status || 'In Review',
-      tag: release.tag || 'general-release-untagged',
-      uploadDate: release.uploadDate,
-      forceUpdate: release.forceUpdate || 'No',
-      additionalData: release.additionalData ? JSON.parse(release.additionalData) : undefined
+
+    return releases.map(row => ({
+      id: row.id,
+      appId: row.appId,
+      platform: row.platform,
+      version: row.version,
+      branch: row.branch,
+      status: row.status || 'In Review',
+      tag: row.tag || 'general-release-untagged',
+      uploadDate: row.uploadDate,
+      forceUpdate: row.forceUpdate || 'No',
+      additionalData: row.additionalData ? JSON.parse(row.additionalData) : undefined,
+      app: {
+        id: row.app_id,
+        name: row.app_name,
+        packageName: row.app_packageName,
+        organizationId: row.app_organizationId
+      },
+      organization: {
+        id: row.org_id,
+        name: row.org_name
+      }
     }));
   } catch (error) {
     console.error('Error in getAllReleases:', error);
@@ -92,79 +153,109 @@ export function getAllReleases(): Release[] {
 }
 
 export function getReleaseById(id: number): Release | undefined {
-  const stmt = db.prepare('SELECT * FROM releases WHERE id = ?');
-  const release = stmt.get(id) as any;
-  
-  if (!release) return undefined;
-  
-  return {
-    id: release.id,
-    organization: release.organization,
-    appName: release.appName,
-    platform: release.platform,
-    version: release.version,
-    branch: release.branch,
-    status: release.status || 'In Review',
-    tag: release.tag || 'general-release-untagged',
-    uploadDate: release.uploadDate,
-    forceUpdate: release.forceUpdate || 'No',
-    additionalData: release.additionalData ? JSON.parse(release.additionalData) : undefined
-  };
+  try {
+    const stmt = db.prepare(`
+      SELECT
+        r.id, r.appId, r.platform, r.version, r.branch, r.status, r.tag, r.uploadDate, r.forceUpdate, r.additionalData,
+        a.id as app_id, a.name as app_name, a.packageName as app_packageName, a.organizationId as app_organizationId,
+        o.id as org_id, o.name as org_name
+      FROM releases r
+      JOIN apps a ON r.appId = a.id
+      JOIN organizations o ON a.organizationId = o.id
+      WHERE r.id = ?
+    `);
+
+    const row = stmt.get(id) as any;
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      appId: row.appId,
+      platform: row.platform,
+      version: row.version,
+      branch: row.branch,
+      status: row.status || 'In Review',
+      tag: row.tag || 'general-release-untagged',
+      uploadDate: row.uploadDate,
+      forceUpdate: row.forceUpdate || 'No',
+      additionalData: row.additionalData ? JSON.parse(row.additionalData) : undefined,
+      app: {
+        id: row.app_id,
+        name: row.app_name,
+        packageName: row.app_packageName,
+        organizationId: row.app_organizationId
+      },
+      organization: {
+        id: row.org_id,
+        name: row.org_name
+      }
+    };
+  } catch (error) {
+    console.error('Error in getReleaseById:', error);
+    throw error;
+  }
 }
 
 export function createRelease(data: ReleaseCreate): Release {
-  // Auto-detect organization if not provided
-  const organization = data.organization || getOrganizationForApp(data.appName);
   const uploadDate = data.uploadDate || new Date().toISOString();
   const status = data.status || 'In Review';
-  
+
   const stmt = db.prepare(`
-    INSERT INTO releases (organization, appName, platform, version, branch, status, tag, uploadDate, forceUpdate, additionalData)
-    VALUES (@organization, @appName, @platform, @version, @branch, @status, @tag, @uploadDate, @forceUpdate, @additionalData)
+    INSERT INTO releases (appId, platform, version, branch, status, tag, uploadDate, forceUpdate, additionalData)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
-  const info = stmt.run({
-    ...data,
-    organization,
+
+  const info = stmt.run(
+    data.appId,
+    data.platform,
+    data.version,
+    data.branch,
     status,
+    data.tag,
     uploadDate,
-    forceUpdate: data.forceUpdate || 'No',
-    additionalData: data.additionalData ? JSON.stringify(data.additionalData) : null
-  });
-  
+    data.forceUpdate || 'No',
+    data.additionalData ? JSON.stringify(data.additionalData) : null
+  );
+
   return getReleaseById(info.lastInsertRowid as number)!;
 }
 
 export function updateRelease(id: number, data: Partial<ReleaseCreate>): Release | undefined {
   const existing = getReleaseById(id);
   if (!existing) return undefined;
-  
+
   const updated = {
-    ...existing,
-    ...data,
-    additionalData: data.additionalData ? JSON.stringify(data.additionalData) : existing.additionalData
+    appId: data.appId ?? existing.appId,
+    platform: data.platform ?? existing.platform,
+    version: data.version ?? existing.version,
+    branch: data.branch ?? existing.branch,
+    status: data.status ?? existing.status,
+    tag: data.tag ?? existing.tag,
+    uploadDate: data.uploadDate ?? existing.uploadDate,
+    forceUpdate: data.forceUpdate ?? existing.forceUpdate,
+    additionalData: data.additionalData ? JSON.stringify(data.additionalData) : (existing.additionalData ? JSON.stringify(existing.additionalData) : null)
   };
-  
+
   const stmt = db.prepare(`
     UPDATE releases
-    SET organization = @organization,
-        appName = @appName,
-        platform = @platform,
-        version = @version,
-        branch = @branch,
-        status = @status,
-        tag = @tag,
-        uploadDate = @uploadDate,
-        forceUpdate = @forceUpdate,
-        additionalData = @additionalData
-    WHERE id = @id
+    SET appId = ?, platform = ?, version = ?, branch = ?, status = ?, tag = ?, uploadDate = ?, forceUpdate = ?, additionalData = ?
+    WHERE id = ?
   `);
-  
-  stmt.run({
-    ...updated,
-    additionalData: typeof updated.additionalData === 'string' ? updated.additionalData : JSON.stringify(updated.additionalData)
-  });
-  
+
+  stmt.run(
+    updated.appId,
+    updated.platform,
+    updated.version,
+    updated.branch,
+    updated.status,
+    updated.tag,
+    updated.uploadDate,
+    updated.forceUpdate,
+    updated.additionalData,
+    id
+  );
+
   return getReleaseById(id);
 }
 
@@ -178,5 +269,12 @@ export function updateMultipleReleaseStatus(ids: number[], status: string): numb
   const placeholders = ids.map(() => '?').join(',');
   const stmt = db.prepare(`UPDATE releases SET status = ? WHERE id IN (${placeholders})`);
   const info = stmt.run(status, ...ids);
+  return info.changes;
+}
+
+export function deleteMultipleReleases(ids: number[]): number {
+  const placeholders = ids.map(() => '?').join(',');
+  const stmt = db.prepare(`DELETE FROM releases WHERE id IN (${placeholders})`);
+  const info = stmt.run(...ids);
   return info.changes;
 }

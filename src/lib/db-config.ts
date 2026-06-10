@@ -1,5 +1,5 @@
 // Database configuration that switches between SQLite, Turso, and in-memory based on environment
-import type { Release, ReleaseCreate } from '../types';
+import type { Release, ReleaseCreate, Organization, App } from '../types';
 
 // Check if we're running in production with Turso
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY;
@@ -54,4 +54,19 @@ export async function deleteRelease(id: number): Promise<boolean> {
 export async function updateMultipleReleaseStatus(ids: number[], status: string): Promise<number> {
   const db = await getDbImplementation();
   return db.updateMultipleReleaseStatus(ids, status);
+}
+
+export async function deleteMultipleReleases(ids: number[]): Promise<number> {
+  const db = await getDbImplementation();
+  return db.deleteMultipleReleases(ids);
+}
+
+export async function findOrCreateOrganization(orgName: string): Promise<Organization> {
+  const db = await getDbImplementation();
+  return db.findOrCreateOrganization(orgName);
+}
+
+export async function findOrCreateApp(appName: string, organizationId: number): Promise<App> {
+  const db = await getDbImplementation();
+  return db.findOrCreateApp(appName, organizationId);
 }

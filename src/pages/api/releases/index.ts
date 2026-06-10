@@ -26,9 +26,9 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const data: ReleaseCreate = await request.json();
     
-    // Validate required fields
-    if (!data.appName || !data.platform || !data.version || !data.branch || !data.tag) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: appName, platform, version, branch, tag' }), {
+    // Validate required fields - now using appId instead of appName
+    if (!data.appId || !data.platform || !data.version || !data.branch || !data.tag) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: appId, platform, version, branch, tag' }), {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +64,8 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Failed to create release' }), {
+    console.error('Error creating release:', error);
+    return new Response(JSON.stringify({ error: 'Failed to create release', details: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',

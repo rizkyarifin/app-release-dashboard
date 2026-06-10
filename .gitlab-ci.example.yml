@@ -38,7 +38,7 @@ stages:
       HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
       BODY=$(echo "$RESPONSE" | sed '$d')
       echo "Response: $BODY"
-      echo "HTTP Code: $HTTP_CODE"
+      echo "HTTP Code: $HTTP_CODE"/
       if [ "$HTTP_CODE" -ne "201" ]; then
         echo "Failed to notify dashboard"
         exit 1

@@ -16,12 +16,14 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   const [filterStatus, setFilterStatus] = useState('');
   const [filterTag, setFilterTag] = useState('');
   const [filterForceUpdate, setFilterForceUpdate] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReleases, setSelectedReleases] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState<ReleaseStatus>('In Review');
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [publishingReleases, setPublishingReleases] = useState<number[]>([]);
 
   const organizations = [...new Set(releases.map(r => r.organization))].sort();
   const platforms = [...new Set(releases.map(r => r.platform))].sort();
@@ -29,6 +31,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   const statuses: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
   const filterStatuses = ['All', 'In Review', 'Ready to publish', 'Published'];
   const forceUpdateOptions = ['All', 'Yes', 'No'];
+  const dateFilterOptions = ['All', 'Today', 'Last 7 days', 'Last 30 days'];
 
   const filteredAndSortedReleases = useMemo(() => {
     let filtered = releases.filter(release => {
@@ -37,11 +40,35 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       const matchesStatus = !filterStatus || filterStatus === 'All' || release.status === filterStatus;
       const matchesTag = !filterTag || release.tag === filterTag;
       const matchesForceUpdate = !filterForceUpdate || filterForceUpdate === 'All' || (release.forceUpdate || 'No') === filterForceUpdate;
+      
+      // Date filtering logic
+      const matchesDate = !filterDate || filterDate === 'All' || (() => {
+        const releaseDate = new Date(release.uploadDate);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        switch (filterDate) {
+          case 'Today':
+            const releaseToday = new Date(releaseDate.getFullYear(), releaseDate.getMonth(), releaseDate.getDate());
+            return releaseToday.getTime() === today.getTime();
+          case 'Last 7 days':
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            return releaseDate >= sevenDaysAgo;
+          case 'Last 30 days':
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            return releaseDate >= thirtyDaysAgo;
+          default:
+            return true;
+        }
+      })();
+      
       const matchesSearch = !searchTerm || 
         release.appName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         release.version.toLowerCase().includes(searchTerm.toLowerCase());
       
-      return matchesOrg && matchesPlatform && matchesStatus && matchesTag && matchesForceUpdate && matchesSearch;
+      return matchesOrg && matchesPlatform && matchesStatus && matchesTag && matchesForceUpdate && matchesDate && matchesSearch;
     });
 
     return filtered.sort((a, b) => {
@@ -52,7 +79,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [releases, sortField, sortDirection, filterOrg, filterPlatform, filterStatus, filterTag, filterForceUpdate, searchTerm]);
+  }, [releases, sortField, sortDirection, filterOrg, filterPlatform, filterStatus, filterTag, filterForceUpdate, filterDate, searchTerm]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredAndSortedReleases.length / itemsPerPage);
@@ -63,7 +90,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filterOrg, filterPlatform, filterStatus, filterTag, filterForceUpdate, searchTerm, itemsPerPage]);
+  }, [filterOrg, filterPlatform, filterStatus, filterTag, filterForceUpdate, filterDate, searchTerm, itemsPerPage]);
 
   const handleSort = (field: keyof Release) => {
     if (sortField === field) {
@@ -97,6 +124,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
     setFilterStatus('');
     setFilterTag('');
     setFilterForceUpdate('');
+    setFilterDate('');
     setSearchTerm('');
   };
 
@@ -152,6 +180,64 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
     }
   };
 
+  const deleteRelease = async (releaseId: number) => {
+    if (!confirm('Are you sure you want to delete this release? This action cannot be undone.')) {
+      return;
+    }
+    
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/releases/${releaseId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Refresh the page to get updated data
+        window.location.reload();
+      } else {
+        alert('Failed to delete release');
+      }
+    } catch (error) {
+      console.error('Error deleting release:', error);
+      alert('Failed to delete release');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const deleteMultipleReleases = async () => {
+    if (selectedReleases.length === 0) {
+      alert('Please select at least one release to delete');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete ${selectedReleases.length} selected releases? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setIsUpdating(true);
+    try {
+      const response = await fetch('/api/releases/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedReleases })
+      });
+      
+      if (response.ok) {
+        setSelectedReleases([]);
+        // Refresh the page to get updated data
+        window.location.reload();
+      } else {
+        alert('Failed to delete releases');
+      }
+    } catch (error) {
+      console.error('Error deleting releases:', error);
+      alert('Failed to delete releases');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleSelectAll = () => {
     const currentPageIds = paginatedReleases.map(r => r.id);
     const isAllSelected = currentPageIds.every(id => selectedReleases.includes(id));
@@ -175,6 +261,36 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `releases-export-${timestamp}.csv`;
     exportToCSV(filteredAndSortedReleases, filename);
+  };
+
+  const handlePublishRelease = async (releaseId: number) => {
+    if (!confirm('Are you sure you want to publish this release? This will trigger the Google Play Console automation on your local machine.')) {
+      return;
+    }
+    
+    setPublishingReleases(prev => [...prev, releaseId]);
+    
+    try {
+      const response = await fetch('/api/releases/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ releaseId })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`Publishing process started for ${result.appName}. Please check your local automation terminal for progress.`);
+        // Don't reload immediately, let the user see the progress
+      } else {
+        alert(`Failed to start publishing: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error triggering publish:', error);
+      alert('Failed to start publishing process');
+    } finally {
+      setPublishingReleases(prev => prev.filter(id => id !== releaseId));
+    }
   };
 
   return (
@@ -255,6 +371,18 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
           </select>
         </div>
         
+        <div className="filter-group">
+          <select
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="filter-select"
+          >
+            {dateFilterOptions.map(option => (
+              <option key={option} value={option === 'All' ? '' : option}>{option}</option>
+            ))}
+          </select>
+        </div>
+        
         <button onClick={clearFilters} className="clear-btn">
           Clear Filters
         </button>
@@ -290,6 +418,13 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
             className="bulk-update-btn"
           >
             {isUpdating ? 'Updating...' : 'Update Selected'}
+          </button>
+          <button 
+            onClick={deleteMultipleReleases}
+            disabled={isUpdating}
+            className="bulk-delete-btn"
+          >
+            {isUpdating ? 'Deleting...' : 'Delete Selected'}
           </button>
         </div>
       )}
@@ -383,6 +518,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                   </span>
                 )}
               </th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -433,6 +569,38 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                   <span className={`force-update-value ${release.forceUpdate === 'Yes' ? 'force-update-yes' : 'force-update-no'}`}>
                     {release.forceUpdate || 'No'}
                   </span>
+                </td>
+                <td className="actions">
+                  {release.status === 'Ready to publish' && release.platform === 'Android' && (
+                    <button 
+                      onClick={() => handlePublishRelease(release.id)}
+                      disabled={publishingReleases.includes(release.id)}
+                      className="publish-btn"
+                      title="Publish to Google Play"
+                    >
+                      {publishingReleases.includes(release.id) ? (
+                        <span className="spinner">⏳</span>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 2L11 13"></path>
+                          <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => deleteRelease(release.id)}
+                    disabled={isUpdating}
+                    className="delete-btn"
+                    title="Delete release"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3,6 5,6 21,6"></polyline>
+                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </button>
                 </td>
               </tr>
             ))}
