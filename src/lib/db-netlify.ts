@@ -88,6 +88,18 @@ export function deleteMultipleReleases(ids: number[]): number {
   return deleted;
 }
 
+export function getAllOrganizations(): Organization[] {
+  return [...organizations];
+}
+
+export function getAllApps(): App[] {
+  return [...apps];
+}
+
+export function getAppsByOrganization(organizationId: number): App[] {
+  return apps.filter(a => a.organizationId === organizationId);
+}
+
 export function findOrCreateOrganization(orgName: string): Organization {
   let org = organizations.find(o => o.name === orgName);
   if (!org) {

@@ -61,6 +61,21 @@ export async function deleteMultipleReleases(ids: number[]): Promise<number> {
   return db.deleteMultipleReleases(ids);
 }
 
+export async function getAllOrganizations(): Promise<Organization[]> {
+  const db = await getDbImplementation();
+  return db.getAllOrganizations();
+}
+
+export async function getAllApps(): Promise<App[]> {
+  const db = await getDbImplementation();
+  return db.getAllApps();
+}
+
+export async function getAppsByOrganization(organizationId: number): Promise<App[]> {
+  const db = await getDbImplementation();
+  return db.getAppsByOrganization(organizationId);
+}
+
 export async function findOrCreateOrganization(orgName: string): Promise<Organization> {
   const db = await getDbImplementation();
   return db.findOrCreateOrganization(orgName);
