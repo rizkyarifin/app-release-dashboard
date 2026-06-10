@@ -30,11 +30,11 @@ const ReleaseCard: React.FC<ReleaseCardProps> = ({ release }) => {
         >
           {release.platform}
         </div>
-        <div className="organization">{release.organization}</div>
+        <div className="organization">{release.organization?.name}</div>
       </div>
       
       <div className="card-body">
-        <h3 className="app-name">{release.appName}</h3>
+        <h3 className="app-name">{release.app?.name}</h3>
         <div className="version-info">
           <span className="version">v{release.version}</span>
           <span className="build">Branch: {release.branch}</span>

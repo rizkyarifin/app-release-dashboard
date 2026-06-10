@@ -3,7 +3,7 @@ import type { Release } from '../types';
 export function exportToCSV(releases: Release[], filename: string = 'releases-export.csv') {
   // Filter to only include name and version columns
   const csvData = releases.map(release => ({
-    name: release.appName,
+    name: release.app?.name || '',
     version: release.version.replace(/^v/, '') // Remove 'v' prefix if present
   }));
 

@@ -14,10 +14,10 @@ const ReleaseGrid: React.FC<ReleaseGridProps> = ({ releases }) => {
 
   const filteredReleases = useMemo(() => {
     return releases.filter(release => {
-      const matchesOrganization = !selectedOrganization || release.organization === selectedOrganization;
+      const matchesOrganization = !selectedOrganization || release.organization?.name === selectedOrganization;
       const matchesPlatform = !selectedPlatform || release.platform === selectedPlatform;
       const matchesSearch = !searchTerm || 
-        release.appName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        release.app?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         release.version.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesOrganization && matchesPlatform && matchesSearch;
@@ -35,13 +35,13 @@ const ReleaseGrid: React.FC<ReleaseGridProps> = ({ releases }) => {
     const groups: Record<string, Record<string, Release[]>> = {};
     
     filteredReleases.forEach(release => {
-      if (!groups[release.organization]) {
-        groups[release.organization] = {};
+      if (!groups[release.organization?.name]) {
+        groups[release.organization?.name] = {};
       }
-      if (!groups[release.organization][release.appName]) {
-        groups[release.organization][release.appName] = [];
+      if (!groups[release.organization?.name][release.app?.name]) {
+        groups[release.organization?.name][release.app?.name] = [];
       }
-      groups[release.organization][release.appName].push(release);
+      groups[release.organization?.name][release.app?.name].push(release);
     });
     
     return groups;

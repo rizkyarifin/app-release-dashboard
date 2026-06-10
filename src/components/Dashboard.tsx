@@ -64,11 +64,11 @@ const Dashboard: React.FC = () => {
             <span className="stat-label">Total Releases</span>
           </div>
           <div className="stat">
-            <span className="stat-number">{new Set(releases.map(r => r.organization)).size}</span>
+            <span className="stat-number">{new Set(releases.map(r => r.organization?.name)).size}</span>
             <span className="stat-label">Organizations</span>
           </div>
           <div className="stat">
-            <span className="stat-number">{new Set(releases.map(r => r.appName)).size}</span>
+            <span className="stat-number">{new Set(releases.map(r => r.app?.name)).size}</span>
             <span className="stat-label">Apps</span>
           </div>
           <div className="stat">

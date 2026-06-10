@@ -22,18 +22,27 @@ export function getReleaseById(id: number): Release | undefined {
 }
 
 export function createRelease(data: ReleaseCreate): Release {
-  const organization = data.organization || getOrganizationForApp(data.appName);
   const uploadDate = data.uploadDate || new Date().toISOString();
   const status = data.status || 'In Review';
-  
+
+  const app = apps.find(a => a.id === data.appId);
+  const org = app ? organizations.find(o => o.id === app.organizationId) : undefined;
+
   const release: Release = {
     id: idCounter++,
-    ...data,
-    organization,
+    appId: data.appId,
+    platform: data.platform,
+    version: data.version,
+    branch: data.branch,
+    tag: data.tag,
     status,
     uploadDate,
+    forceUpdate: data.forceUpdate || 'No',
+    additionalData: data.additionalData,
+    app,
+    organization: org,
   };
-  
+
   releases.push(release);
   return release;
 }

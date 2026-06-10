@@ -222,8 +222,8 @@ const ReleaseGroupedView: React.FC<ReleaseGroupedViewProps> = ({ releases, onRel
                         />
                         <div className="release-info">
                           <div className="release-app">
-                            <span className="app-name">{release.appName}</span>
-                            <span className="organization">({release.organization})</span>
+                            <span className="app-name">{release.app?.name}</span>
+                            <span className="organization">({release.organization?.name})</span>
                           </div>
                           <div className="release-details">
                             <span 

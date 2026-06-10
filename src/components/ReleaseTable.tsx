@@ -25,7 +25,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [publishingReleases, setPublishingReleases] = useState<number[]>([]);
 
-  const organizations = [...new Set(releases.map(r => r.organization))].sort();
+  const organizations = [...new Set(releases.map(r => r.organization?.name))].sort();
   const platforms = [...new Set(releases.map(r => r.platform))].sort();
   const tags = [...new Set(releases.map(r => r.tag))].sort();
   const statuses: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
@@ -35,7 +35,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
 
   const filteredAndSortedReleases = useMemo(() => {
     let filtered = releases.filter(release => {
-      const matchesOrg = !filterOrg || release.organization === filterOrg;
+      const matchesOrg = !filterOrg || release.organization?.name === filterOrg;
       const matchesPlatform = !filterPlatform || release.platform === filterPlatform;
       const matchesStatus = !filterStatus || filterStatus === 'All' || release.status === filterStatus;
       const matchesTag = !filterTag || release.tag === filterTag;
@@ -65,7 +65,7 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
       })();
       
       const matchesSearch = !searchTerm || 
-        release.appName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        release.app?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         release.version.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesOrg && matchesPlatform && matchesStatus && matchesTag && matchesForceUpdate && matchesDate && matchesSearch;
@@ -531,8 +531,8 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({ releases, onReleaseUpdate }
                     onChange={() => handleSelectRelease(release.id)}
                   />
                 </td>
-                <td className="app-name">{release.appName}</td>
-                <td className="organization">{release.organization}</td>
+                <td className="app-name">{release.app?.name}</td>
+                <td className="organization">{release.organization?.name}</td>
                 <td className="platform">
                   <span 
                     className="platform-badge"

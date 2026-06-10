@@ -14,7 +14,7 @@ const ReleaseList: React.FC<ReleaseListProps> = ({ releases }) => {
   };
 
   const groupedReleases = releases.reduce((acc, release) => {
-    const key = `${release.organization}-${release.appName}`;
+    const key = `${release.organization?.name}-${release.app?.name}`;
     if (!acc[key]) {
       acc[key] = [];
     }

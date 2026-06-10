@@ -31,8 +31,8 @@ const SimpleRelease: React.FC<SimpleReleaseProps> = ({ releases }) => {
               margin: '10px 0',
               borderRadius: '5px'
             }}>
-              <h3>{release.appName}</h3>
-              <p><strong>Organization:</strong> {release.organization}</p>
+              <h3>{release.appName || release.app?.name}</h3>
+              <p><strong>Organization:</strong> {typeof release.organization === 'string' ? release.organization : release.organization?.name}</p>
               <p><strong>Platform:</strong> {release.platform}</p>
               <p><strong>Version:</strong> {release.version}</p>
               <p><strong>Branch:</strong> {release.branch}</p>

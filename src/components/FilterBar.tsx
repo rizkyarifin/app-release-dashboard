@@ -22,7 +22,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onSearchChange,
   onClearFilters,
 }) => {
-  const organizations = [...new Set(releases.map(r => r.organization))].sort();
+  const organizations = [...new Set(releases.map(r => r.organization?.name))].filter(Boolean).sort();
   const platforms = [...new Set(releases.map(r => r.platform))].sort();
 
   return (

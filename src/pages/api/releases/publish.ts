@@ -42,12 +42,12 @@ export const POST: APIRoute = async ({ request }) => {
     const automationConfig = {
       organizations: [
         {
-          name: release.organization,
-          id: getOrganizationId(release.organization),
+          name: release.organization?.name || '',
+          id: getOrganizationId(release.organization?.name || ''),
           apps: [
             {
-              name: release.appName,
-              packageName: getPackageName(release.appName)
+              name: release.app?.name || '',
+              packageName: getPackageName(release.app?.name || '')
             }
           ]
         }
@@ -93,8 +93,8 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ 
       message: 'Publishing process started',
       releaseId,
-      appName: release.appName,
-      organization: release.organization
+      appName: release.app?.name,
+      organization: release.organization?.name
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
