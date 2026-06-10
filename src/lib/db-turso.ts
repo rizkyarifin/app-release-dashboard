@@ -268,10 +268,34 @@ export async function getReleaseById(id: number): Promise<Release | undefined> {
   }
 }
 
+export async function findReleaseByAppVersionPlatform(appId: number, version: string, platform: string): Promise<Release | undefined> {
+  const result = await client.execute({
+    sql: 'SELECT id FROM releases WHERE appId = ? AND version = ? AND platform = ?',
+    args: [appId, version, platform]
+  });
+  if (result.rows.length === 0) return undefined;
+  return getReleaseById(result.rows[0].id as number);
+}
+
 export async function createRelease(data: ReleaseCreate): Promise<Release> {
   try {
     const uploadDate = data.uploadDate || new Date().toISOString();
     const status = data.status || 'In Review';
+
+    // Upsert: check for existing release with same appId + version + platform
+    const existing = await findReleaseByAppVersionPlatform(data.appId, data.version, data.platform);
+    if (existing) {
+      const updated = await updateRelease(existing.id, {
+        branch: data.branch,
+        status,
+        tag: data.tag,
+        uploadDate,
+        forceUpdate: data.forceUpdate || 'No',
+        additionalData: data.additionalData,
+      });
+      if (!updated) throw new Error('Failed to update existing release');
+      return updated;
+    }
 
     const result = await client.execute({
       sql: `

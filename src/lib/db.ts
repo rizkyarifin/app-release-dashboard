@@ -197,9 +197,29 @@ export function getReleaseById(id: number): Release | undefined {
   }
 }
 
+export function findReleaseByAppVersionPlatform(appId: number, version: string, platform: string): Release | undefined {
+  const stmt = db.prepare('SELECT id FROM releases WHERE appId = ? AND version = ? AND platform = ?');
+  const row = stmt.get(appId, version, platform) as { id: number } | undefined;
+  if (!row) return undefined;
+  return getReleaseById(row.id);
+}
+
 export function createRelease(data: ReleaseCreate): Release {
   const uploadDate = data.uploadDate || new Date().toISOString();
   const status = data.status || 'In Review';
+
+  // Upsert: check for existing release with same appId + version + platform
+  const existing = findReleaseByAppVersionPlatform(data.appId, data.version, data.platform);
+  if (existing) {
+    return updateRelease(existing.id, {
+      branch: data.branch,
+      status,
+      tag: data.tag,
+      uploadDate,
+      forceUpdate: data.forceUpdate || 'No',
+      additionalData: data.additionalData,
+    })!;
+  }
 
   const stmt = db.prepare(`
     INSERT INTO releases (appId, platform, version, branch, status, tag, uploadDate, forceUpdate, additionalData)

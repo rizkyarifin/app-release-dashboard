@@ -21,9 +21,26 @@ export function getReleaseById(id: number): Release | undefined {
   return releases.find(r => r.id === id);
 }
 
+export function findReleaseByAppVersionPlatform(appId: number, version: string, platform: string): Release | undefined {
+  return releases.find(r => r.appId === appId && r.version === version && r.platform === platform);
+}
+
 export function createRelease(data: ReleaseCreate): Release {
   const uploadDate = data.uploadDate || new Date().toISOString();
   const status = data.status || 'In Review';
+
+  // Upsert: check for existing release with same appId + version + platform
+  const existing = findReleaseByAppVersionPlatform(data.appId, data.version, data.platform);
+  if (existing) {
+    return updateRelease(existing.id, {
+      branch: data.branch,
+      status,
+      tag: data.tag,
+      uploadDate,
+      forceUpdate: data.forceUpdate || 'No',
+      additionalData: data.additionalData,
+    })!;
+  }
 
   const app = apps.find(a => a.id === data.appId);
   const org = app ? organizations.find(o => o.id === app.organizationId) : undefined;
