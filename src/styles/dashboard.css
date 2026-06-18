@@ -390,6 +390,8 @@
 /* ── Status Select ── */
 .tl-card-bot {
   display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .tl-status {
@@ -420,6 +422,71 @@
 .tl-status--published {
   background-color: var(--color-green-bg);
   color: var(--color-green);
+}
+
+/* ── Delete Button ── */
+.tl-delete-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.tl-delete-btn:hover {
+  color: var(--color-red);
+  border-color: var(--color-red);
+  background: #fef2f2;
+}
+
+.tl-delete-confirm {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.tl-delete-confirm-text {
+  font-size: 12px;
+  color: var(--color-red);
+  font-weight: 500;
+}
+
+.tl-delete-yes {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-red);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.tl-delete-yes:hover {
+  opacity: 0.85;
+}
+
+.tl-delete-no {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tl-delete-no:hover {
+  background: var(--color-bg);
 }
 
 /* ── Load More / Empty ── */

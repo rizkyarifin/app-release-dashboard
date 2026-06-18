@@ -93,12 +93,23 @@ const Dashboard: React.FC = () => {
   }, [releases, search, orgFilter, platformFilter, statusFilter, datePreset, startDate, endDate]);
 
   const stats = useMemo(() => {
-    const published = releases.filter((r) => r.status === 'Published').length;
-    const inReview = releases.filter((r) => r.status === 'In Review').length;
-    const ready = releases.filter((r) => r.status === 'Ready to publish').length;
-    const uniqueApps = new Set(releases.map((r) => r.app?.name)).size;
-    return { total: releases.length, published, inReview, ready, uniqueApps };
-  }, [releases]);
+    const published = filtered.filter((r) => r.status === 'Published').length;
+    const inReview = filtered.filter((r) => r.status === 'In Review').length;
+    const ready = filtered.filter((r) => r.status === 'Ready to publish').length;
+    const uniqueApps = new Set(filtered.map((r) => r.app?.name)).size;
+    return { total: filtered.length, published, inReview, ready, uniqueApps };
+  }, [filtered]);
+
+  const handleDelete = async (id: number) => {
+    // Optimistic update
+    setReleases((prev) => prev.filter((r) => r.id !== id));
+    try {
+      const res = await fetch(`/api/releases/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+    } catch {
+      fetchReleases();
+    }
+  };
 
   const hasFilters = search || orgFilter || platformFilter || statusFilter || datePreset;
 
@@ -130,30 +141,6 @@ const Dashboard: React.FC = () => {
       </header>
 
       <main className="dash-main">
-        {/* Stats */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-value">{stats.total}</span>
-            <span className="stat-label">Total Releases</span>
-          </div>
-          <div className="stat-card stat-card--green">
-            <span className="stat-value">{stats.published}</span>
-            <span className="stat-label">Published</span>
-          </div>
-          <div className="stat-card stat-card--amber">
-            <span className="stat-value">{stats.inReview}</span>
-            <span className="stat-label">In Review</span>
-          </div>
-          <div className="stat-card stat-card--blue">
-            <span className="stat-value">{stats.ready}</span>
-            <span className="stat-label">Ready to Publish</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">{stats.uniqueApps}</span>
-            <span className="stat-label">Unique Apps</span>
-          </div>
-        </div>
-
         {/* Filters */}
         <div className="filter-row">
           <input
@@ -228,6 +215,30 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
+        {/* Stats */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span className="stat-value">{stats.total}</span>
+            <span className="stat-label">Total Releases</span>
+          </div>
+          <div className="stat-card stat-card--green">
+            <span className="stat-value">{stats.published}</span>
+            <span className="stat-label">Published</span>
+          </div>
+          <div className="stat-card stat-card--amber">
+            <span className="stat-value">{stats.inReview}</span>
+            <span className="stat-label">In Review</span>
+          </div>
+          <div className="stat-card stat-card--blue">
+            <span className="stat-value">{stats.ready}</span>
+            <span className="stat-label">Ready to Publish</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-value">{stats.uniqueApps}</span>
+            <span className="stat-label">Unique Apps</span>
+          </div>
+        </div>
+
         {/* Timeline */}
         {releases.length === 0 ? (
           <div className="dash-empty">
@@ -235,7 +246,7 @@ const Dashboard: React.FC = () => {
             <p>Upload your first release to get started</p>
           </div>
         ) : (
-          <ReleaseTimeline releases={filtered} onStatusChange={handleStatusChange} />
+          <ReleaseTimeline releases={filtered} onStatusChange={handleStatusChange} onDelete={handleDelete} />
         )}
       </main>
     </div>

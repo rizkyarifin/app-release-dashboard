@@ -11,6 +11,7 @@ interface DateGroup {
 interface ReleaseTimelineProps {
   releases: Release[];
   onStatusChange: (id: number, status: ReleaseStatus) => void;
+  onDelete: (id: number) => void;
 }
 
 const BATCH_SIZE = 20;
@@ -46,7 +47,7 @@ function groupByDate(releases: Release[]): DateGroup[] {
     .filter((g) => g.releases.length > 0);
 }
 
-const ReleaseTimeline: React.FC<ReleaseTimelineProps> = ({ releases, onStatusChange }) => {
+const ReleaseTimeline: React.FC<ReleaseTimelineProps> = ({ releases, onStatusChange, onDelete }) => {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
 
   const sorted = useMemo(
@@ -69,7 +70,7 @@ const ReleaseTimeline: React.FC<ReleaseTimelineProps> = ({ releases, onStatusCha
           </div>
           <div className="tl-group-items">
             {group.releases.map((r) => (
-              <ReleaseTimelineCard key={r.id} release={r} onStatusChange={onStatusChange} />
+              <ReleaseTimelineCard key={r.id} release={r} onStatusChange={onStatusChange} onDelete={onDelete} />
             ))}
           </div>
         </div>

@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Release, ReleaseStatus } from '../types';
 
 interface ReleaseTimelineCardProps {
   release: Release;
   onStatusChange: (id: number, status: ReleaseStatus) => void;
+  onDelete: (id: number) => void;
 }
 
 const STATUS_OPTIONS: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
 
-const ReleaseTimelineCard: React.FC<ReleaseTimelineCardProps> = ({ release, onStatusChange }) => {
+const ReleaseTimelineCard: React.FC<ReleaseTimelineCardProps> = ({ release, onStatusChange, onDelete }) => {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const appName = release.app?.name || 'Unknown App';
   const orgName = release.organization?.name || 'Unknown Org';
   const platform = release.platform || 'Unknown';
@@ -51,6 +53,31 @@ const ReleaseTimelineCard: React.FC<ReleaseTimelineCardProps> = ({ release, onSt
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
+        {confirmingDelete ? (
+          <div className="tl-delete-confirm">
+            <span className="tl-delete-confirm-text">Delete this release?</span>
+            <button
+              className="tl-delete-yes"
+              onClick={() => onDelete(release.id)}
+            >
+              Yes
+            </button>
+            <button
+              className="tl-delete-no"
+              onClick={() => setConfirmingDelete(false)}
+            >
+              No
+            </button>
+          </div>
+        ) : (
+          <button
+            className="tl-delete-btn"
+            onClick={() => setConfirmingDelete(true)}
+            title="Delete release"
+          >
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );
