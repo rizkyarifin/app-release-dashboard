@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { startOfWeek, startOfMonth, endOfDay } from 'date-fns';
-import ReleaseTimeline from './ReleaseTimeline';
+import ReleaseTable from './ReleaseTable';
 import type { Release, ReleaseStatus } from '../types';
 import '../styles/dashboard.css';
+
+const STATUS_OPTIONS: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
 
 const Dashboard: React.FC = () => {
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   // Filters
   const [search, setSearch] = useState('');
@@ -37,7 +40,6 @@ const Dashboard: React.FC = () => {
   };
 
   const handleStatusChange = async (id: number, status: ReleaseStatus) => {
-    // Optimistic update
     setReleases((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status } : r)),
     );
@@ -49,7 +51,21 @@ const Dashboard: React.FC = () => {
       });
       if (!res.ok) throw new Error();
     } catch {
-      // Revert on failure
+      fetchReleases();
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    setReleases((prev) => prev.filter((r) => r.id !== id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      const res = await fetch(`/api/releases/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+    } catch {
       fetchReleases();
     }
   };
@@ -100,11 +116,58 @@ const Dashboard: React.FC = () => {
     return { total: filtered.length, published, inReview, ready, uniqueApps };
   }, [filtered]);
 
-  const handleDelete = async (id: number) => {
-    // Optimistic update
-    setReleases((prev) => prev.filter((r) => r.id !== id));
+  // Selection handlers
+  const handleToggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const filteredIds = filtered.map((r) => r.id);
+      const allSelected = filteredIds.length > 0 && filteredIds.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(filteredIds);
+    });
+  }, [filtered]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} selected release(s)?`)) return;
+    const ids = [...selectedIds];
+    setReleases((prev) => prev.filter((r) => !selectedIds.has(r.id)));
+    setSelectedIds(new Set());
     try {
-      const res = await fetch(`/api/releases/${id}`, { method: 'DELETE' });
+      const res = await fetch('/api/releases/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      fetchReleases();
+    }
+  };
+
+  const handleBulkStatusChange = async (status: ReleaseStatus) => {
+    const ids = [...selectedIds];
+    setReleases((prev) =>
+      prev.map((r) => (selectedIds.has(r.id) ? { ...r, status } : r)),
+    );
+    try {
+      const res = await fetch('/api/releases/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, status }),
+      });
       if (!res.ok) throw new Error();
     } catch {
       fetchReleases();
@@ -239,14 +302,45 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Timeline */}
+        {/* Bulk Action Bar */}
+        {selectedIds.size > 0 && (
+          <div className="bulk-bar">
+            <span className="bulk-bar-count">{selectedIds.size} selected</span>
+            <select
+              className="bulk-bar-status"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkStatusChange(e.target.value as ReleaseStatus);
+                  e.target.value = '';
+                }
+              }}
+            >
+              <option value="" disabled>Set status...</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <button className="bulk-bar-delete" onClick={handleBulkDelete}>Delete</button>
+            <button className="bulk-bar-deselect" onClick={handleDeselectAll}>Deselect all</button>
+          </div>
+        )}
+
+        {/* Table */}
         {releases.length === 0 ? (
           <div className="dash-empty">
             <h2>No releases yet</h2>
             <p>Upload your first release to get started</p>
           </div>
         ) : (
-          <ReleaseTimeline releases={filtered} onStatusChange={handleStatusChange} onDelete={handleDelete} />
+          <ReleaseTable
+            releases={filtered}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            onToggleAll={handleToggleAll}
+            onStatusChange={handleStatusChange}
+            onDelete={handleDelete}
+          />
         )}
       </main>
     </div>

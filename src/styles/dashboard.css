@@ -56,7 +56,7 @@
 }
 
 .dash-main {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-lg);
 }
@@ -232,112 +232,159 @@
   background: var(--color-bg);
 }
 
-/* ── Timeline ── */
-.timeline {
-  position: relative;
-  padding-left: var(--space-xl);
-}
-
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--color-border);
-}
-
-/* ── Timeline Group ── */
-.tl-group {
-  margin-bottom: var(--space-xl);
-}
-
-.tl-group-header {
+/* ── Bulk Action Bar ── */
+.bulk-bar {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-indigo-bg);
+  border: 1px solid var(--color-indigo);
+  border-radius: var(--radius-sm);
   margin-bottom: var(--space-md);
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
-.tl-dot {
-  position: absolute;
-  left: calc(-1 * var(--space-xl) + 2px);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--color-indigo);
-  border: 2px solid var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.tl-group-label {
-  font-size: 14px;
+.bulk-bar-count {
+  font-size: 13px;
   font-weight: 600;
+  color: var(--color-indigo);
+  margin-right: var(--space-sm);
+}
+
+.bulk-bar-status {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--color-surface);
   color: var(--color-text);
+  cursor: pointer;
 }
 
-.tl-group-count {
-  font-size: 12px;
-  color: var(--color-text-muted);
+.bulk-bar-delete {
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-red);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.bulk-bar-delete:hover {
+  opacity: 0.85;
+}
+
+.bulk-bar-deselect {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bulk-bar-deselect:hover {
   background: var(--color-bg);
-  padding: 2px 8px;
-  border-radius: 10px;
 }
 
-.tl-group-items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+/* ── Release Table ── */
+.rt-wrapper {
+  overflow-x: auto;
 }
 
-/* ── Timeline Card ── */
-.tl-card {
+.release-table {
+  width: 100%;
+  border-collapse: collapse;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+  font-size: 14px;
 }
 
-.tl-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.tl-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-sm);
-}
-
-.tl-card-app {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
-  min-width: 0;
-}
-
-.tl-card-name {
+.rt-th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
   font-weight: 600;
-  font-size: 15px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.rt-th-check {
+  width: 40px;
+  text-align: center;
+}
+
+.rt-row {
+  transition: background 0.1s;
+}
+
+.rt-row:nth-child(even) {
+  background: var(--color-bg);
+}
+
+.rt-row:hover {
+  background: #f3f4f6;
+}
+
+.rt-row--selected {
+  background: var(--color-indigo-bg) !important;
+}
+
+.rt-td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.tl-card-org {
-  font-size: 13px;
+.rt-td-check {
+  width: 40px;
+  text-align: center;
+}
+
+.rt-td-app {
+  font-weight: 600;
+}
+
+.rt-td-org {
+  color: var(--color-text-secondary);
+}
+
+.rt-td-branch {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.rt-td-date {
+  font-size: 12px;
   color: var(--color-text-muted);
-  white-space: nowrap;
+}
+
+.rt-td-actions {
+  width: 100px;
 }
 
 /* ── Platform Pill ── */
-.tl-platform {
+.rt-platform {
   font-size: 11px;
   font-weight: 600;
   padding: 3px 10px;
@@ -347,26 +394,18 @@
   letter-spacing: 0.3px;
 }
 
-.tl-platform--android {
+.rt-platform--android {
   background: var(--color-green-bg);
   color: var(--color-green);
 }
 
-.tl-platform--ios {
+.rt-platform--ios {
   background: var(--color-blue-bg);
   color: var(--color-blue);
 }
 
-/* ── Card Middle ── */
-.tl-card-mid {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-sm);
-}
-
-.tl-version {
+/* ── Version Badge ── */
+.rt-version {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-indigo);
@@ -375,26 +414,8 @@
   border-radius: var(--radius-sm);
 }
 
-.tl-branch {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--color-text-secondary);
-}
-
-.tl-time {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-left: auto;
-}
-
 /* ── Status Select ── */
-.tl-card-bot {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.tl-status {
+.rt-status {
   appearance: none;
   -webkit-appearance: none;
   font-size: 12px;
@@ -409,24 +430,23 @@
   background-position: right 8px center;
 }
 
-.tl-status--in-review {
+.rt-status--in-review {
   background-color: var(--color-amber-bg);
   color: var(--color-amber);
 }
 
-.tl-status--ready-to-publish {
+.rt-status--ready-to-publish {
   background-color: var(--color-blue-bg);
   color: var(--color-blue);
 }
 
-.tl-status--published {
+.rt-status--published {
   background-color: var(--color-green-bg);
   color: var(--color-green);
 }
 
-/* ── Delete Button ── */
-.tl-delete-btn {
-  margin-left: auto;
+/* ── Row Delete Button ── */
+.rt-delete-btn {
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
@@ -438,26 +458,19 @@
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.tl-delete-btn:hover {
+.rt-delete-btn:hover {
   color: var(--color-red);
   border-color: var(--color-red);
   background: #fef2f2;
 }
 
-.tl-delete-confirm {
-  margin-left: auto;
-  display: flex;
+.rt-delete-confirm {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
 }
 
-.tl-delete-confirm-text {
-  font-size: 12px;
-  color: var(--color-red);
-  font-weight: 500;
-}
-
-.tl-delete-yes {
+.rt-delete-yes {
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -469,11 +482,11 @@
   transition: opacity 0.15s;
 }
 
-.tl-delete-yes:hover {
+.rt-delete-yes:hover {
   opacity: 0.85;
 }
 
-.tl-delete-no {
+.rt-delete-no {
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 500;
@@ -485,24 +498,24 @@
   transition: background 0.15s;
 }
 
-.tl-delete-no:hover {
+.rt-delete-no:hover {
   background: var(--color-bg);
 }
 
 /* ── Load More / Empty ── */
-.tl-empty {
+.rt-empty {
   text-align: center;
   padding: var(--space-2xl) 0;
   color: var(--color-text-muted);
   font-size: 14px;
 }
 
-.tl-load-more {
+.rt-load-more {
   text-align: center;
   padding: var(--space-md) 0;
 }
 
-.tl-load-btn {
+.rt-load-btn {
   padding: var(--space-sm) var(--space-lg);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -513,7 +526,7 @@
   transition: background 0.15s;
 }
 
-.tl-load-btn:hover {
+.rt-load-btn:hover {
   background: var(--color-bg);
 }
 
@@ -539,14 +552,8 @@
     padding: var(--space-md);
   }
 
-  .tl-card-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-xs);
-  }
-
-  .tl-time {
-    margin-left: 0;
+  .bulk-bar {
+    flex-wrap: wrap;
   }
 }
 
@@ -561,13 +568,5 @@
 
   .dash-title {
     font-size: 18px;
-  }
-
-  .timeline {
-    padding-left: var(--space-lg);
-  }
-
-  .tl-dot {
-    left: calc(-1 * var(--space-lg) + 2px);
   }
 }
