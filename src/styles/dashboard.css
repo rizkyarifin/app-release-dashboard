@@ -125,7 +125,7 @@
 /* ── Stats Grid ── */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
@@ -158,6 +158,71 @@
   margin-top: var(--space-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* ── Platform Distribution Chart ── */
+.platform-chart {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.platform-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+}
+
+.platform-chart-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.platform-chart-bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.platform-chart-label {
+  width: 72px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.platform-chart-track {
+  flex: 1;
+  height: 24px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.platform-chart-bar {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  min-width: 4px;
+  animation: bar-grow 0.4s ease-out;
+}
+
+.platform-chart-count {
+  width: 40px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+@keyframes bar-grow {
+  from { width: 0; }
 }
 
 /* ── Filter Row ── */

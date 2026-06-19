@@ -112,8 +112,16 @@ const Dashboard: React.FC = () => {
     const published = filtered.filter((r) => r.status === 'Published').length;
     const inReview = filtered.filter((r) => r.status === 'In Review').length;
     const ready = filtered.filter((r) => r.status === 'Ready to publish').length;
-    const uniqueApps = new Set(filtered.map((r) => r.app?.name)).size;
-    return { total: filtered.length, published, inReview, ready, uniqueApps };
+    return { total: filtered.length, published, inReview, ready };
+  }, [filtered]);
+
+  const platformCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((r) => {
+      const p = r.platform || 'Unknown';
+      counts[p] = (counts[p] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [filtered]);
 
   // Selection handlers
@@ -296,11 +304,35 @@ const Dashboard: React.FC = () => {
             <span className="stat-value">{stats.ready}</span>
             <span className="stat-label">Ready to Publish</span>
           </div>
-          <div className="stat-card">
-            <span className="stat-value">{stats.uniqueApps}</span>
-            <span className="stat-label">Unique Apps</span>
-          </div>
         </div>
+
+        {/* Platform Distribution Chart */}
+        {platformCounts.length > 0 && (
+          <div className="platform-chart">
+            <h3 className="platform-chart-title">Releases by Platform</h3>
+            {platformCounts.map(([platform, count]) => {
+              const max = platformCounts[0][1];
+              const pct = max > 0 ? (count / max) * 100 : 0;
+              const colorVar = platform.toLowerCase() === 'android'
+                ? 'var(--color-green)'
+                : platform.toLowerCase() === 'ios'
+                  ? 'var(--color-blue)'
+                  : 'var(--color-indigo)';
+              return (
+                <div className="platform-chart-bar-row" key={platform}>
+                  <span className="platform-chart-label">{platform}</span>
+                  <div className="platform-chart-track">
+                    <div
+                      className="platform-chart-bar"
+                      style={{ width: `${pct}%`, backgroundColor: colorVar }}
+                    />
+                  </div>
+                  <span className="platform-chart-count">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Bulk Action Bar */}
         {selectedIds.size > 0 && (
