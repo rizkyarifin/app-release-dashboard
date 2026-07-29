@@ -157,6 +157,9 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({
                             title={job.result || JOB_BADGE[job.status]?.label || job.status}
                           >
                             {JOB_BADGE[job.status]?.icon || ''} {JOB_BADGE[job.status]?.label || job.status}
+                            {job.status === 'error' && job.result
+                              ? `: ${job.result.length > 70 ? job.result.slice(0, 70) + '…' : job.result}`
+                              : ''}
                           </span>
                         )}
                         {confirmingId === r.id ? (

@@ -87,7 +87,10 @@
 .rt-job { font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .rt-job--pending, .rt-job--running { background: #fef3c7; color: #92400e; }
 .rt-job--done { background: #dcfce7; color: #166534; }
-.rt-job--error { background: #fee2e2; color: #991b1b; cursor: help; }
+.rt-job--error {
+  background: #fee2e2; color: #991b1b; cursor: help;
+  white-space: normal; border-radius: 8px; max-width: 320px; line-height: 1.3;
+}
 
 .dash-title {
   font-size: 22px;
