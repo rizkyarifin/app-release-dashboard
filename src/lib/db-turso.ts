@@ -48,6 +48,37 @@ async function initializeDatabase() {
         FOREIGN KEY (appId) REFERENCES apps(id) ON DELETE CASCADE
       )
     `);
+
+    // Automation job queue (dashboard enqueues, local worker executes).
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS automation_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        releaseId INTEGER,
+        appId INTEGER,
+        packageName TEXT NOT NULL,
+        appName TEXT,
+        orgName TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        result TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    `);
+
+    // Single-row worker control switch.
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS automation_control (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        enabled INTEGER NOT NULL DEFAULT 0,
+        heartbeat TEXT,
+        updatedAt TEXT
+      )
+    `);
+    await client.execute({
+      sql: `INSERT OR IGNORE INTO automation_control (id, enabled, updatedAt) VALUES (1, 0, ?)`,
+      args: [new Date().toISOString()]
+    });
   } catch (error) {
     console.error('Error initializing database:', error);
   }
@@ -420,4 +451,80 @@ export async function deleteMultipleReleases(ids: number[]): Promise<number> {
     console.error('Error in deleteMultipleReleases:', error);
     throw error;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Automation jobs + worker control
+// ---------------------------------------------------------------------------
+import type { AutomationJob, AutomationJobCreate, WorkerControl } from '../types';
+
+function mapJob(row: any): AutomationJob {
+  return {
+    id: row.id as number,
+    type: row.type as AutomationJob['type'],
+    releaseId: (row.releaseId ?? null) as number | null,
+    appId: (row.appId ?? null) as number | null,
+    packageName: (row.packageName as string) || '',
+    appName: (row.appName as string) || '',
+    orgName: (row.orgName as string) || '',
+    status: row.status as AutomationJob['status'],
+    result: (row.result ?? null) as string | null,
+    createdAt: row.createdAt as string,
+    updatedAt: row.updatedAt as string,
+  };
+}
+
+export async function getAutomationJobs(status?: string): Promise<AutomationJob[]> {
+  const result = status
+    ? await client.execute({ sql: 'SELECT * FROM automation_jobs WHERE status = ? ORDER BY id ASC', args: [status] })
+    : await client.execute('SELECT * FROM automation_jobs ORDER BY id DESC LIMIT 200');
+  return result.rows.map(mapJob);
+}
+
+export async function getAutomationJobById(id: number): Promise<AutomationJob | undefined> {
+  const result = await client.execute({ sql: 'SELECT * FROM automation_jobs WHERE id = ?', args: [id] });
+  return result.rows.length ? mapJob(result.rows[0]) : undefined;
+}
+
+export async function createAutomationJob(data: AutomationJobCreate): Promise<AutomationJob> {
+  const now = new Date().toISOString();
+  const result = await client.execute({
+    sql: `INSERT INTO automation_jobs (type, releaseId, appId, packageName, appName, orgName, status, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+    args: [data.type, data.releaseId ?? null, data.appId ?? null, data.packageName, data.appName ?? '', data.orgName ?? '', now, now],
+  });
+  return (await getAutomationJobById(Number(result.lastInsertRowid)))!;
+}
+
+export async function updateAutomationJob(id: number, patch: { status?: string; result?: string }): Promise<AutomationJob | undefined> {
+  const existing = await getAutomationJobById(id);
+  if (!existing) return undefined;
+  await client.execute({
+    sql: 'UPDATE automation_jobs SET status = ?, result = ?, updatedAt = ? WHERE id = ?',
+    args: [patch.status ?? existing.status, patch.result ?? existing.result, new Date().toISOString(), id],
+  });
+  return getAutomationJobById(id);
+}
+
+export async function getWorkerControl(): Promise<WorkerControl> {
+  const result = await client.execute('SELECT enabled, heartbeat, updatedAt FROM automation_control WHERE id = 1');
+  const row = result.rows[0];
+  return {
+    enabled: !!(row?.enabled),
+    heartbeat: (row?.heartbeat ?? null) as string | null,
+    updatedAt: (row?.updatedAt ?? null) as string | null,
+  };
+}
+
+export async function setWorkerEnabled(enabled: boolean): Promise<WorkerControl> {
+  await client.execute({
+    sql: 'UPDATE automation_control SET enabled = ?, updatedAt = ? WHERE id = 1',
+    args: [enabled ? 1 : 0, new Date().toISOString()],
+  });
+  return getWorkerControl();
+}
+
+export async function workerHeartbeat(): Promise<WorkerControl> {
+  await client.execute({ sql: 'UPDATE automation_control SET heartbeat = ? WHERE id = 1', args: [new Date().toISOString()] });
+  return getWorkerControl();
 }

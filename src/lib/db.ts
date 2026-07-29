@@ -47,6 +47,32 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS automation_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    releaseId INTEGER,
+    appId INTEGER,
+    packageName TEXT NOT NULL,
+    appName TEXT,
+    orgName TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    result TEXT,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS automation_control (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    enabled INTEGER NOT NULL DEFAULT 0,
+    heartbeat TEXT,
+    updatedAt TEXT
+  )
+`);
+db.prepare(`INSERT OR IGNORE INTO automation_control (id, enabled, updatedAt) VALUES (1, 0, ?)`).run(new Date().toISOString());
+
 
 // Helper functions for organizations
 export function getAllOrganizations(): Organization[] {
@@ -297,4 +323,52 @@ export function deleteMultipleReleases(ids: number[]): number {
   const stmt = db.prepare(`DELETE FROM releases WHERE id IN (${placeholders})`);
   const info = stmt.run(...ids);
   return info.changes;
+}
+
+// ---------------------------------------------------------------------------
+// Automation jobs + worker control
+// ---------------------------------------------------------------------------
+import type { AutomationJob, AutomationJobCreate, WorkerControl } from '../types';
+
+export function getAutomationJobs(status?: string): AutomationJob[] {
+  const stmt = status
+    ? db.prepare('SELECT * FROM automation_jobs WHERE status = ? ORDER BY id ASC')
+    : db.prepare('SELECT * FROM automation_jobs ORDER BY id DESC LIMIT 200');
+  return (status ? stmt.all(status) : stmt.all()) as AutomationJob[];
+}
+
+export function getAutomationJobById(id: number): AutomationJob | undefined {
+  return db.prepare('SELECT * FROM automation_jobs WHERE id = ?').get(id) as AutomationJob | undefined;
+}
+
+export function createAutomationJob(data: AutomationJobCreate): AutomationJob {
+  const now = new Date().toISOString();
+  const info = db.prepare(
+    `INSERT INTO automation_jobs (type, releaseId, appId, packageName, appName, orgName, status, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+  ).run(data.type, data.releaseId ?? null, data.appId ?? null, data.packageName, data.appName ?? '', data.orgName ?? '', now, now);
+  return getAutomationJobById(info.lastInsertRowid as number)!;
+}
+
+export function updateAutomationJob(id: number, patch: { status?: string; result?: string }): AutomationJob | undefined {
+  const existing = getAutomationJobById(id);
+  if (!existing) return undefined;
+  db.prepare('UPDATE automation_jobs SET status = ?, result = ?, updatedAt = ? WHERE id = ?')
+    .run(patch.status ?? existing.status, patch.result ?? existing.result, new Date().toISOString(), id);
+  return getAutomationJobById(id);
+}
+
+export function getWorkerControl(): WorkerControl {
+  const row = db.prepare('SELECT enabled, heartbeat, updatedAt FROM automation_control WHERE id = 1').get() as any;
+  return { enabled: !!(row?.enabled), heartbeat: row?.heartbeat ?? null, updatedAt: row?.updatedAt ?? null };
+}
+
+export function setWorkerEnabled(enabled: boolean): WorkerControl {
+  db.prepare('UPDATE automation_control SET enabled = ?, updatedAt = ? WHERE id = 1').run(enabled ? 1 : 0, new Date().toISOString());
+  return getWorkerControl();
+}
+
+export function workerHeartbeat(): WorkerControl {
+  db.prepare('UPDATE automation_control SET heartbeat = ? WHERE id = 1').run(new Date().toISOString());
+  return getWorkerControl();
 }

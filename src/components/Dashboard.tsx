@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { startOfWeek, startOfMonth, endOfDay } from 'date-fns';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { startOfWeek, startOfMonth, endOfDay, formatDistanceToNow } from 'date-fns';
 import ReleaseTable from './ReleaseTable';
 import type { Release, ReleaseStatus } from '../types';
 import '../styles/dashboard.css';
+
+interface JobInfo { id: number; type: string; status: string; result: string | null; releaseId: number | null; }
 
 const STATUS_OPTIONS: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
 
@@ -21,9 +23,92 @@ const Dashboard: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Automation worker state
+  const [workerEnabled, setWorkerEnabled] = useState(false);
+  const [workerHeartbeat, setWorkerHeartbeat] = useState<string | null>(null);
+  const [jobsByRelease, setJobsByRelease] = useState<Record<number, JobInfo>>({});
+  const seenDone = useRef<Set<number>>(new Set());
+
   useEffect(() => {
     fetchReleases();
   }, []);
+
+  // Poll worker control + jobs so per-app buttons reflect live progress.
+  useEffect(() => {
+    let alive = true;
+    const poll = async () => {
+      try {
+        const [ctrl, jobs] = await Promise.all([
+          fetch('/api/automation/control').then((r) => r.json()),
+          fetch('/api/automation/jobs').then((r) => r.json()),
+        ]);
+        if (!alive) return;
+        setWorkerEnabled(!!ctrl.enabled);
+        setWorkerHeartbeat(ctrl.heartbeat ?? null);
+
+        // jobs come newest-first → first seen per release is the latest.
+        const map: Record<number, JobInfo> = {};
+        let newlyDone = false;
+        for (const j of jobs as JobInfo[]) {
+          if (j.releaseId && !map[j.releaseId]) map[j.releaseId] = j;
+          if ((j.status === 'done' || j.status === 'error') && !seenDone.current.has(j.id)) {
+            seenDone.current.add(j.id);
+            if (j.status === 'done') newlyDone = true;
+          }
+        }
+        setJobsByRelease(map);
+        if (newlyDone) fetchReleases(); // a job finished → statuses may have changed
+      } catch {
+        /* transient; retry next tick */
+      }
+    };
+    poll();
+    const t = setInterval(poll, 4000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  const toggleWorker = async () => {
+    const next = !workerEnabled;
+    setWorkerEnabled(next);
+    try {
+      await fetch('/api/automation/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      });
+    } catch {
+      setWorkerEnabled(!next); // revert on failure
+    }
+  };
+
+  const handleAction = async (releaseId: number, type: 'status' | 'publish') => {
+    try {
+      const res = await fetch('/api/automation/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, releaseId }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert(e.error || 'Failed to queue job');
+        return;
+      }
+      const job = (await res.json()) as JobInfo;
+      setJobsByRelease((prev) => ({ ...prev, [releaseId]: job }));
+      if (!workerEnabled) {
+        alert('Job queued. Turn the worker ON (top right) and start it locally to process it.');
+      }
+    } catch {
+      alert('Failed to queue job');
+    }
+  };
+
+  const workerLastSeen = (() => {
+    if (!workerHeartbeat) return null;
+    try { return formatDistanceToNow(new Date(workerHeartbeat), { addSuffix: true }); } catch { return null; }
+  })();
+  // Worker is "connected" if it checked in within the last ~30s.
+  const workerOnline = !!workerHeartbeat && (Date.now() - new Date(workerHeartbeat).getTime() < 30000);
 
   const fetchReleases = async () => {
     try {
@@ -207,8 +292,26 @@ const Dashboard: React.FC = () => {
     <div className="dash">
       {/* Header */}
       <header className="dash-header">
-        <h1 className="dash-title">App Release Dashboard</h1>
-        <p className="dash-subtitle">Track all your app releases in one place</p>
+        <div>
+          <h1 className="dash-title">App Release Dashboard</h1>
+          <p className="dash-subtitle">Track all your app releases in one place</p>
+        </div>
+        <div className="worker-control">
+          <span className={`worker-dot ${workerOnline ? 'worker-dot--online' : 'worker-dot--offline'}`} />
+          <div className="worker-meta">
+            <span className="worker-label">Automation worker</span>
+            <span className="worker-status">
+              {workerOnline ? `connected · ${workerLastSeen}` : workerHeartbeat ? `last seen ${workerLastSeen}` : 'not running'}
+            </span>
+          </div>
+          <button
+            className={`worker-toggle ${workerEnabled ? 'worker-toggle--on' : ''}`}
+            onClick={toggleWorker}
+            title={workerEnabled ? 'Turn the worker off (jobs stay queued)' : 'Turn the worker on so queued jobs get processed'}
+          >
+            {workerEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
       </header>
 
       <main className="dash-main">
@@ -372,6 +475,8 @@ const Dashboard: React.FC = () => {
             onToggleAll={handleToggleAll}
             onStatusChange={handleStatusChange}
             onDelete={handleDelete}
+            jobsByRelease={jobsByRelease}
+            onAction={handleAction}
           />
         )}
       </main>

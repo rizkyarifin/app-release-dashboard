@@ -144,3 +144,51 @@ export function findOrCreateApp(appName: string, organizationId: number): App {
   }
   return app;
 }
+
+// ---------------------------------------------------------------------------
+// Automation jobs + worker control (in-memory)
+// ---------------------------------------------------------------------------
+import type { AutomationJob, AutomationJobCreate, WorkerControl } from '../types';
+
+let jobs: AutomationJob[] = [];
+let jobIdCounter = 1;
+let control: WorkerControl = { enabled: false, heartbeat: null, updatedAt: new Date().toISOString() };
+
+export function getAutomationJobs(status?: string): AutomationJob[] {
+  const list = status ? jobs.filter(j => j.status === status) : [...jobs].reverse();
+  return list;
+}
+
+export function getAutomationJobById(id: number): AutomationJob | undefined {
+  return jobs.find(j => j.id === id);
+}
+
+export function createAutomationJob(data: AutomationJobCreate): AutomationJob {
+  const now = new Date().toISOString();
+  const job: AutomationJob = {
+    id: jobIdCounter++, type: data.type, releaseId: data.releaseId ?? null, appId: data.appId ?? null,
+    packageName: data.packageName, appName: data.appName ?? '', orgName: data.orgName ?? '',
+    status: 'pending', result: null, createdAt: now, updatedAt: now,
+  };
+  jobs.push(job);
+  return job;
+}
+
+export function updateAutomationJob(id: number, patch: { status?: string; result?: string }): AutomationJob | undefined {
+  const job = jobs.find(j => j.id === id);
+  if (!job) return undefined;
+  if (patch.status !== undefined) job.status = patch.status as AutomationJob['status'];
+  if (patch.result !== undefined) job.result = patch.result;
+  job.updatedAt = new Date().toISOString();
+  return job;
+}
+
+export function getWorkerControl(): WorkerControl { return control; }
+export function setWorkerEnabled(enabled: boolean): WorkerControl {
+  control = { ...control, enabled, updatedAt: new Date().toISOString() };
+  return control;
+}
+export function workerHeartbeat(): WorkerControl {
+  control = { ...control, heartbeat: new Date().toISOString() };
+  return control;
+}

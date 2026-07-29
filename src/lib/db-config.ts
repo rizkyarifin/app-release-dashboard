@@ -1,5 +1,5 @@
 // Database configuration that switches between SQLite, Turso, and in-memory based on environment
-import type { Release, ReleaseCreate, Organization, App } from '../types';
+import type { Release, ReleaseCreate, Organization, App, AutomationJob, AutomationJobCreate, WorkerControl } from '../types';
 
 // Check if we're running in production with Turso
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY;
@@ -84,4 +84,40 @@ export async function findOrCreateOrganization(orgName: string): Promise<Organiz
 export async function findOrCreateApp(appName: string, organizationId: number): Promise<App> {
   const db = await getDbImplementation();
   return db.findOrCreateApp(appName, organizationId);
+}
+
+// Automation jobs + worker control
+export async function getAutomationJobs(status?: string): Promise<AutomationJob[]> {
+  const db = await getDbImplementation();
+  return db.getAutomationJobs(status);
+}
+
+export async function getAutomationJobById(id: number): Promise<AutomationJob | undefined> {
+  const db = await getDbImplementation();
+  return db.getAutomationJobById(id);
+}
+
+export async function createAutomationJob(data: AutomationJobCreate): Promise<AutomationJob> {
+  const db = await getDbImplementation();
+  return db.createAutomationJob(data);
+}
+
+export async function updateAutomationJob(id: number, patch: { status?: string; result?: string }): Promise<AutomationJob | undefined> {
+  const db = await getDbImplementation();
+  return db.updateAutomationJob(id, patch);
+}
+
+export async function getWorkerControl(): Promise<WorkerControl> {
+  const db = await getDbImplementation();
+  return db.getWorkerControl();
+}
+
+export async function setWorkerEnabled(enabled: boolean): Promise<WorkerControl> {
+  const db = await getDbImplementation();
+  return db.setWorkerEnabled(enabled);
+}
+
+export async function workerHeartbeat(): Promise<WorkerControl> {
+  const db = await getDbImplementation();
+  return db.workerHeartbeat();
 }

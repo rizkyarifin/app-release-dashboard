@@ -65,6 +65,40 @@ export interface ReleaseUpdate {
   additionalData?: Record<string, any>;
 }
 
+// Automation job queue — the dashboard enqueues jobs; the local worker executes them.
+export type JobType = 'status' | 'publish';
+export type JobStatus = 'pending' | 'running' | 'done' | 'error';
+
+export interface AutomationJob {
+  id: number;
+  type: JobType;
+  releaseId: number | null;
+  appId: number | null;
+  packageName: string;
+  appName: string;
+  orgName: string;
+  status: JobStatus;
+  result: string | null;   // human-readable outcome / error
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AutomationJobCreate {
+  type: JobType;
+  releaseId?: number | null;
+  appId?: number | null;
+  packageName: string;
+  appName?: string;
+  orgName?: string;
+}
+
+// Single-row control switch the web toggles and the worker polls.
+export interface WorkerControl {
+  enabled: boolean;
+  heartbeat: string | null;  // last time the worker checked in (ISO)
+  updatedAt: string | null;
+}
+
 // Legacy types for backward compatibility during migration
 export interface ReleaseLegacy {
   id: number;

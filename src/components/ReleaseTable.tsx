@@ -5,6 +5,13 @@ import type { Release, ReleaseStatus } from '../types';
 const STATUS_OPTIONS: ReleaseStatus[] = ['In Review', 'Ready to publish', 'Published'];
 const BATCH_SIZE = 20;
 
+interface JobInfo {
+  id: number;
+  type: string;
+  status: string;
+  result: string | null;
+}
+
 interface ReleaseTableProps {
   releases: Release[];
   selectedIds: Set<number>;
@@ -12,7 +19,16 @@ interface ReleaseTableProps {
   onToggleAll: () => void;
   onStatusChange: (id: number, status: ReleaseStatus) => void;
   onDelete: (id: number) => void;
+  jobsByRelease: Record<number, JobInfo>;
+  onAction: (releaseId: number, type: 'status' | 'publish') => void;
 }
+
+const JOB_BADGE: Record<string, { icon: string; label: string }> = {
+  pending: { icon: '⏳', label: 'Queued' },
+  running: { icon: '⚙️', label: 'Running' },
+  done: { icon: '✅', label: 'Done' },
+  error: { icon: '❌', label: 'Error' },
+};
 
 const ReleaseTable: React.FC<ReleaseTableProps> = ({
   releases,
@@ -21,6 +37,8 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({
   onToggleAll,
   onStatusChange,
   onDelete,
+  jobsByRelease,
+  onAction,
 }) => {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
@@ -106,14 +124,52 @@ const ReleaseTable: React.FC<ReleaseTableProps> = ({
                 </td>
                 <td className="rt-td rt-td-date" title={r.uploadDate}>{relativeTime}</td>
                 <td className="rt-td rt-td-actions">
-                  {confirmingId === r.id ? (
-                    <span className="rt-delete-confirm">
-                      <button className="rt-delete-yes" onClick={() => { onDelete(r.id); setConfirmingId(null); }}>Yes</button>
-                      <button className="rt-delete-no" onClick={() => setConfirmingId(null)}>No</button>
-                    </span>
-                  ) : (
-                    <button className="rt-delete-btn" onClick={() => setConfirmingId(r.id)}>Delete</button>
-                  )}
+                  {(() => {
+                    const job = jobsByRelease[r.id];
+                    const active = job && (job.status === 'pending' || job.status === 'running');
+                    return (
+                      <div className="rt-actions">
+                        {isAndroid && (
+                          <>
+                            <button
+                              className="rt-action-btn"
+                              disabled={!!active}
+                              title="Re-read this app's status from Play Console"
+                              onClick={() => onAction(r.id, 'status')}
+                            >
+                              Check status
+                            </button>
+                            {r.status === 'Ready to publish' && (
+                              <button
+                                className="rt-action-btn rt-action-btn--publish"
+                                disabled={!!active}
+                                title="Publish this app's approved changes"
+                                onClick={() => onAction(r.id, 'publish')}
+                              >
+                                Publish
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {job && (
+                          <span
+                            className={`rt-job rt-job--${job.status}`}
+                            title={job.result || JOB_BADGE[job.status]?.label || job.status}
+                          >
+                            {JOB_BADGE[job.status]?.icon || ''} {JOB_BADGE[job.status]?.label || job.status}
+                          </span>
+                        )}
+                        {confirmingId === r.id ? (
+                          <span className="rt-delete-confirm">
+                            <button className="rt-delete-yes" onClick={() => { onDelete(r.id); setConfirmingId(null); }}>Yes</button>
+                            <button className="rt-delete-no" onClick={() => setConfirmingId(null)}>No</button>
+                          </span>
+                        ) : (
+                          <button className="rt-delete-btn" onClick={() => setConfirmingId(r.id)}>Delete</button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
               </tr>
             );
